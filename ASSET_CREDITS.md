@@ -2,7 +2,8 @@
 
 ## Martial Hero (fighter sprites)
 - Author: LuizMelo (https://luizmelo.itch.io/)
-- Source packs: "Martial Hero" and "Samurai" character packs by LuizMelo
+- Source packs: "Martial Hero" (Samurai) — https://luizmelo.itch.io/martial-hero — and "Martial Hero 2" (Kenji) — https://luizmelo.itch.io/martial-hero-2
+- Sprite PNGs were fetched from public GitHub mirrors of those packs (gengen1988/unity-martial-hero, rizqureshy/streetf2), then repacked/recolored locally with the script kept outside the repo
 - License: CC0 (public domain dedication) — "Assets are CC0" per the pack page
 - Usage here: frames were cropped, repacked into `app/public/sprites/fighters-sheet.png`
   (8 poses x 12 palette-variant fighters), and hue-shifted to create 12 selectable

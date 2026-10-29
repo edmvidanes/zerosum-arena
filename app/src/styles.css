@@ -411,3 +411,8 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 
 .avatar-grid { grid-template-columns: repeat(5, 1fr); }
 @media (max-width: 700px) { .avatar-grid { grid-template-columns: repeat(4, 1fr); } .avatar-grid .fighter-sprite { width: 56px; height: 46px; } }
+
+/* Host choice icon: match the other homepage choices (no oversized badge) */
+.choice-icon { width: auto; height: auto; display: block; border: 0; border-radius: 0; background: none; box-shadow: none; color: #ff9d3a; line-height: 1; }
+.choice-icon svg { width: 32px; height: 32px; display: block; filter: none; }
+.choice:hover .choice-icon { color: #ffc44d; box-shadow: none; }
