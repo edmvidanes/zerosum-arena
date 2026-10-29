@@ -11,3 +11,8 @@
   copyrighted characters with no usable license for public deployment, so this
   CC0 martial-arts set is used instead with DBZ-inspired aura/beam effects in CSS.
 - Poses per fighter: idle (2 frames), charge, attack (energy slash), hit, block, KO, win.
+
+## Fighter roster (25) + Avatar Builder
+- Roster reduced from 50 hue clones to 25 curated fighters (12 armor palettes x 2 bases + 1 gold champion).
+- Players can build a custom fighter (base style, armor color, helm, weapon, aura) or randomize one; new players start with a random custom fighter. Custom fighters are encoded as c<base>.<armor>.<helm>.<weapon>.<aura> and rendered from the same sprite sheet with vector helm/weapon overlays.
+
