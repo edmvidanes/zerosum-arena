@@ -12,7 +12,10 @@ const lobbyTimeoutMs = 20 * 60 * 1000;
 const rpsMoves = ['Rock 🪨', 'Paper 📄', 'Scissors ✂️'];
 const arenaTones = new Set(['RESPECTFUL', 'FRIENDLY', 'COMPETITIVE', 'RAGEBAIT', 'NO_MERCY']);
 const arenaTone = (value) => arenaTones.has(String(value ?? '').toUpperCase()) ? String(value).toUpperCase() : 'RESPECTFUL';
-const playerAvatars = new Set(Array.from({ length: 8 }, (_, index) => `arena-${String(index + 1).padStart(2, '0')}`));
+const playerAvatars = new Set([
+  ...Array.from({ length: 25 }, (_, index) => `arena-${String(index + 1).padStart(2, '0')}`),
+  ...Array.from({ length: 6 }, (_, variant) => Array.from({ length: 25 }, (_, theme) => `arena-v${variant}t${String(theme + 1).padStart(2, '0')}`)).flat(),
+]);
 
 export class ZerosumGame {
   constructor(db, options = {}) {
@@ -431,10 +434,20 @@ export class ZerosumGame {
     const tournament = this.tournament(code);
     const human = this.player(code, tournament.solo_player_id);
     if (!human) return;
+    // Leaderboard policy: only genuine streaks count. Runs ending at streak 0-1
+    // and forfeited runs are never recorded, and the table is pruned to the
+    // top 5 on every write so it can never grow unbounded.
+    const streak = tournament.streak ?? 0;
+    if (result === 'FORFEIT' || streak < 2) {
+      this.db.prepare('DELETE FROM solo_leaderboard WHERE code=?').run(code);
+      return;
+    }
     const bank = this.bankForTournament(code);
     this.db.prepare(`INSERT INTO solo_leaderboard (code, name, avatar, bank_id, bank_name, streak, ladder_length, result, ended_at)
       VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET streak=excluded.streak, result=excluded.result, ended_at=excluded.ended_at`)
-      .run(code, human.name, human.avatar, tournament.bank_id, bank.name, tournament.streak ?? 0, tournament.ladder_length ?? 0, result, Date.now());
+      .run(code, human.name, human.avatar, tournament.bank_id, bank.name, streak, tournament.ladder_length ?? 0, result, Date.now());
+    this.db.prepare(`DELETE FROM solo_leaderboard WHERE streak < 2 OR result='FORFEIT'
+      OR code NOT IN (SELECT code FROM solo_leaderboard ORDER BY streak DESC, ended_at DESC LIMIT 5)`).run();
   }
 
   advanceSolo(code, match) {

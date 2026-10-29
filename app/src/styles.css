@@ -458,3 +458,6 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .theme-grid { padding-top: 0; grid-template-columns: repeat(4, 1fr); }
 .theme-actions { justify-content: center; }
 .fighter-sprite { display: none !important; }
+
+.picker-label { display: block; font-size: 11px; letter-spacing: .12em; color: #9fb4d8; text-transform: uppercase; margin-bottom: 6px; }
+.variant-grid { grid-template-columns: repeat(6, 1fr); padding-top: 0; }

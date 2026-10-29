@@ -126,7 +126,7 @@ test('host can join as a player and gets the fair player view', () => {
   } finally { cleanup(ctx); }
 });
 
-test('forfeiting a solo run ends it, records the streak, and frees the player', () => {
+test('forfeiting a solo run ends it, frees the player, and stays off the leaderboard', () => {
   const ctx = setup();
   try {
     const socket = new FakeSocket();
@@ -135,8 +135,7 @@ test('forfeiting a solo run ends it, records the streak, and frees the player', 
     ctx.game.forfeitSoloRun(socket, { code: created.code, playerId: HUMAN });
     assert.equal(ctx.game.tournament(created.code).phase, 'COMPLETE');
     const row = ctx.db.prepare('SELECT * FROM solo_leaderboard WHERE code=?').get(created.code);
-    assert.equal(row.result, 'FORFEIT');
-    assert.equal(row.streak, 0);
+    assert.equal(row, undefined, 'forfeited runs are never recorded on the leaderboard');
     const snap = ctx.game.snapshot(created.code, HUMAN);
     assert.equal(snap.tournament.phase, 'COMPLETE');
   } finally { cleanup(ctx); }

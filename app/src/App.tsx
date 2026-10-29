@@ -46,18 +46,42 @@ const fighterThemes = [
   { name: 'Solar', gi: '#f5b921', giDark: '#b45309', pants: '#3a3049', hair: '#4a2c0a', aura: '#ffd23e', accent: '#fef3c7' },
   { name: 'Shadow', gi: '#64748b', giDark: '#1e293b', pants: '#111827', hair: '#0b0f16', aura: '#94a3b8', accent: '#e2e8f0' },
   { name: 'Rose', gi: '#ec4899', giDark: '#9d174d', pants: '#3b2436', hair: '#33101f', aura: '#ff8fb5', accent: '#ffe4f0' },
+  { name: 'Frost', gi: '#7dd3fc', giDark: '#0369a1', pants: '#1e3a5f', hair: '#0f2536', aura: '#a5f3fc', accent: '#ffffff' },
+  { name: 'Toxic', gi: '#a3e635', giDark: '#4d7c0f', pants: '#26331c', hair: '#1c2a10', aura: '#bef264', accent: '#ecfccb' },
+  { name: 'Royal', gi: '#6366f1', giDark: '#3730a3', pants: '#27272a', hair: '#171233', aura: '#818cf8', accent: '#e0e7ff' },
+  { name: 'Sunset', gi: '#fb923c', giDark: '#c2410c', pants: '#43302e', hair: '#33150f', aura: '#fdba74', accent: '#ffedd5' },
+  { name: 'Ocean', gi: '#06b6d4', giDark: '#155e75', pants: '#17384a', hair: '#0a2530', aura: '#22d3ee', accent: '#cffafe' },
+  { name: 'Sakura', gi: '#f9a8d4', giDark: '#be185d', pants: '#3f2a3a', hair: '#2f1220', aura: '#fbcfe8', accent: '#fff1f2' },
+  { name: 'Onyx', gi: '#334155', giDark: '#0f172a', pants: '#020617', hair: '#000000', aura: '#cbd5e1', accent: '#f8fafc' },
+  { name: 'Ivory', gi: '#e7e5e4', giDark: '#a8a29e', pants: '#44403c', hair: '#292524', aura: '#f5f5f4', accent: '#ffffff' },
+  { name: 'Copper', gi: '#d97706', giDark: '#92400e', pants: '#3b2f2f', hair: '#2a1503', aura: '#fbbf24', accent: '#fef3c7' },
+  { name: 'Jade', gi: '#2dd4bf', giDark: '#0f766e', pants: '#14332f', hair: '#0b2422', aura: '#5eead4', accent: '#ccfbf1' },
+  { name: 'Storm', gi: '#38bdf8', giDark: '#1d4ed8', pants: '#1e293b', hair: '#0b1e33', aura: '#93c5fd', accent: '#dbeafe' },
+  { name: 'Magma', gi: '#ef4444', giDark: '#7f1d1d', pants: '#290f0f', hair: '#1a0505', aura: '#f97316', accent: '#fee2e2' },
+  { name: 'Mint', gi: '#6ee7b7', giDark: '#059669', pants: '#17352a', hair: '#0d211a', aura: '#a7f3d0', accent: '#ecfdf5' },
+  { name: 'Grape', gi: '#c084fc', giDark: '#7e22ce', pants: '#2e1065', hair: '#1e1033', aura: '#d8b4fe', accent: '#faf5ff' },
+  { name: 'Desert', gi: '#fbbf24', giDark: '#b45309', pants: '#574124', hair: '#3a2405', aura: '#fde68a', accent: '#fffbeb' },
+  { name: 'Midnight', gi: '#818cf8', giDark: '#312e81', pants: '#111133', hair: '#080820', aura: '#a5b4fc', accent: '#eef2ff' },
+  { name: 'Champion', gi: '#facc15', giDark: '#a16207', pants: '#713f12', hair: '#422006', aura: '#fde047', accent: '#ffffff' },
 ];
-const playerAvatars = fighterThemes.map((_, index) => `arena-${String(index + 1).padStart(2, '0')}`);
+const variantNames = ['Fighter', 'Female Fighter', 'Werewolf', 'Robot', 'Alien', 'Skeleton'];
+export const encodeAvatar = (variant: number, theme: number) => `arena-v${variant}t${String(theme + 1).padStart(2, '0')}`;
+const playerAvatars = variantNames.flatMap((_, variant) => fighterThemes.map((_, theme) => encodeAvatar(variant, theme)));
 export type SpritePose = 'idle' | 'charge' | 'attack' | 'hit' | 'block' | 'ko' | 'win';
-export function themeIndex(seed?: string) {
-  const match = String(seed ?? '').match(/^arena-(\d{1,2})$/);
-  if (match) return Math.min(7, Math.max(0, Number(match[1]) - 1));
+export function parseAvatar(seed?: string): { variant: number; theme: number } {
+  const custom = String(seed ?? '').match(/^arena-v([0-5])t(\d{1,2})$/);
+  if (custom) return { variant: Number(custom[1]), theme: Math.min(24, Math.max(0, Number(custom[2]) - 1)) };
+  const legacy = String(seed ?? '').match(/^arena-(\d{1,2})$/);
+  if (legacy) return { variant: 0, theme: Math.min(24, Math.max(0, Number(legacy[1]) - 1)) };
   let hash = 0;
   for (const char of String(seed ?? 'F')) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return hash % fighterThemes.length;
+  return { variant: hash % variantNames.length, theme: hash % fighterThemes.length };
 }
-export const isValidAvatar = (seed?: string) => playerAvatars.includes(String(seed ?? ''));
-export function fighterName(seed?: string) { return `${fighterThemes[themeIndex(seed)].name} Fighter`; }
+export const isValidAvatar = (seed?: string) => playerAvatars.includes(String(seed ?? '')) || /^arena-\d{1,2}$/.test(String(seed ?? ''));
+export function fighterName(seed?: string) {
+  const { variant, theme } = parseAvatar(seed);
+  return `${fighterThemes[theme].name} ${variantNames[variant]}`;
+}
 
 
 const initialUrlCode = new URLSearchParams(location.search).get('code')?.toUpperCase() ?? '';
@@ -81,7 +105,8 @@ function playerName(players: PublicPlayer[], id: string) {
 }
 
 export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: string; large?: boolean; pose?: SpritePose }) {
-  const theme = fighterThemes[themeIndex(seed)];
+  const { variant, theme: themeIdx } = parseAvatar(seed);
+  const theme = fighterThemes[themeIdx];
   const ko = pose === 'ko';
   const bodyTransform = ko ? 'rotate(-82 110 196)' : pose === 'charge' ? 'translate(0 12)' : pose === 'hit' ? 'rotate(-9 110 130)' : pose === 'win' ? 'translate(0 -3)' : undefined;
   const skin = '#f0bd8d';
@@ -90,6 +115,8 @@ export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: s
     <ellipse className="arena-aura" cx="110" cy="112" rx="80" ry="90" fill={theme.aura} opacity="0.16" />
     <ellipse cx="110" cy="203" rx="60" ry="7" fill="#000000" opacity="0.35" />
     <g transform={bodyTransform}>
+{variant === 2 && <path d="M86 148 Q48 162 42 124 Q56 144 86 136 Z" fill="#7d6a58" stroke={line} strokeWidth="2" />}
+      {variant === 1 && <path d="M84 38 Q76 108 90 130 L130 130 Q144 108 136 38 Q110 58 84 38 Z" fill={theme.hair} stroke={line} strokeWidth="2" />}
       <path d="M100 128 L87 176 L101 176 L111 138 Z" fill={theme.pants} stroke={line} strokeWidth="2" />
       <path d="M119 128 L129 176 L143 176 L129 136 Z" fill={theme.pants} stroke={line} strokeWidth="2" />
       <rect x="82" y="174" width="23" height="11" rx="4" fill={theme.giDark} />
@@ -105,10 +132,20 @@ export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: s
       <path d="M97 69 L110 97 L123 69 L123 82 L110 106 L97 82 Z" fill={theme.giDark} />
       <rect x="79" y="124" width="62" height="11" rx="4" fill={theme.accent} stroke={line} strokeWidth="1.5" />
       <path d="M128 135 L138 152 L130 154 L122 137 Z" fill={theme.accent} />
+{variant <= 1 && <>
       <circle cx="110" cy="47" r="25" fill={skin} stroke={line} strokeWidth="2" />
-      <path d="M85 50 L77 25 L92 31 L94 12 L107 27 L115 8 L123 27 L135 16 L133 35 L141 31 L135 53 Q110 37 85 50 Z" fill={theme.hair} stroke={line} strokeWidth="2" strokeLinejoin="round" />
-      <path d="M86 39 Q110 31 134 39 L134 47 Q110 39 86 47 Z" fill={theme.accent} />
-      <path d="M86 43 L72 51 L83 56 Z" fill={theme.accent} />
+      {variant === 0 && <>
+        <path d="M85 50 L77 25 L92 31 L94 12 L107 27 L115 8 L123 27 L135 16 L133 35 L141 31 L135 53 Q110 37 85 50 Z" fill={theme.hair} stroke={line} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M86 39 Q110 31 134 39 L134 47 Q110 39 86 47 Z" fill={theme.accent} />
+        <path d="M86 43 L72 51 L83 56 Z" fill={theme.accent} />
+      </>}
+      {variant === 1 && <>
+        <path d="M132 26 Q154 36 150 64 Q141 50 129 42 Z" fill={theme.hair} stroke={line} strokeWidth="2" />
+        <path d="M84 50 Q80 18 110 16 Q140 18 136 50 Q134 34 124 30 Q128 44 124 48 Q118 32 104 32 Q90 34 86 50 Z" fill={theme.hair} stroke={line} strokeWidth="2" strokeLinejoin="round" />
+        <path d="M87 37 Q110 30 133 37 L133 44 Q110 37 87 44 Z" fill={theme.accent} />
+        <ellipse cx="94" cy="58" rx="4.5" ry="2.6" fill="#ff9db1" opacity="0.55" />
+        <ellipse cx="128" cy="58" rx="4.5" ry="2.6" fill="#ff9db1" opacity="0.55" />
+      </>}
       {ko ? <>
         <path d="M98 47 L107 56 M107 47 L98 56" stroke="#1f2430" strokeWidth="2.6" strokeLinecap="round" />
         <path d="M116 47 L125 56 M125 47 L116 56" stroke="#1f2430" strokeWidth="2.6" strokeLinecap="round" />
@@ -121,9 +158,57 @@ export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: s
         <circle cx="113" cy="62" r="4" fill="#7c2d12" />
       </> : <>
         <ellipse cx="103" cy="52" rx="3" ry="4.4" fill="#1f2430" /><ellipse cx="122" cy="52" rx="3" ry="4.4" fill="#1f2430" />
+        {variant === 1 && <path d="M97 48 L92 44 M127 48 L132 44" stroke="#1f2430" strokeWidth="2" strokeLinecap="round" />}
         <path d="M96 44 L108 47 M128 44 L116 47" stroke="#1f2430" strokeWidth="2.4" strokeLinecap="round" />
         <path d="M107 61 Q113 64 119 61" fill="none" stroke="#1f2430" strokeWidth="2.2" strokeLinecap="round" />
       </>}
+    </>}
+    {variant === 2 && <>
+      <path d="M89 31 L84 6 L104 19 Z" fill="#7d6a58" stroke={line} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M131 31 L136 6 L116 19 Z" fill="#7d6a58" stroke={line} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M92 26 L90 14 L100 21 Z M128 26 L130 14 L120 21 Z" fill="#d9a08a" />
+      <circle cx="110" cy="47" r="25" fill="#8a7663" stroke={line} strokeWidth="2" />
+      <path d="M86 50 L74 57 L87 62 M134 50 L146 57 L133 62" fill="#8a7663" stroke={line} strokeWidth="1.6" />
+      <ellipse cx="117" cy="57" rx="14" ry="9.5" fill="#d8c3a5" stroke={line} strokeWidth="1.6" />
+      <ellipse cx="125" cy="52" rx="5.5" ry="4.2" fill="#2b2118" />
+      <path d="M108 63 L111 70 L114 63 M119 64 L122 71 L125 64" fill="#ffffff" stroke={line} strokeWidth="1" />
+      <ellipse cx="101" cy="45" rx="3.6" ry="4.6" fill="#ffb020" /><ellipse cx="120" cy="45" rx="3.6" ry="4.6" fill="#ffb020" />
+      <circle cx="101" cy="45" r="1.7" fill="#1f1508" /><circle cx="120" cy="45" r="1.7" fill="#1f1508" />
+      <path d="M94 36 L106 39 M127 36 L115 39" stroke="#4a3a28" strokeWidth="2.4" strokeLinecap="round" />
+    </>}
+    {variant === 3 && <>
+      <rect x="102" y="70" width="16" height="9" fill="#8fa2b8" stroke={line} strokeWidth="1.6" />
+      <rect x="77" y="40" width="8" height="17" rx="3.5" fill={theme.giDark} stroke={line} strokeWidth="1.6" />
+      <rect x="135" y="40" width="8" height="17" rx="3.5" fill={theme.giDark} stroke={line} strokeWidth="1.6" />
+      <line x1="110" y1="23" x2="110" y2="11" stroke="#8fa2b8" strokeWidth="3" />
+      <circle cx="110" cy="8" r="4.5" fill={theme.accent} stroke={line} strokeWidth="1.6" />
+      <rect x="84" y="21" width="52" height="52" rx="13" fill="#b8c4d4" stroke={line} strokeWidth="2" />
+      <rect x="91" y="38" width="38" height="14" rx="7" fill="#0b1220" />
+      <circle cx="103" cy="45" r="3.6" fill={ko || pose === 'hit' ? '#ff5555' : theme.aura} />
+      <circle cx="117" cy="45" r="3.6" fill={ko || pose === 'hit' ? '#ff5555' : theme.aura} />
+      <rect x="101" y="61" width="18" height="4.5" rx="2.2" fill="#0b1220" opacity="0.65" />
+      <path d="M92 28 L128 28" stroke="#8fa2b8" strokeWidth="2" />
+    </>}
+    {variant === 4 && <>
+      <path d="M101 24 Q95 9 85 6" fill="none" stroke="#5da86e" strokeWidth="3" strokeLinecap="round" />
+      <path d="M119 24 Q125 9 135 6" fill="none" stroke="#5da86e" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="84" cy="6" r="4.5" fill={theme.aura} stroke={line} strokeWidth="1.4" />
+      <circle cx="136" cy="6" r="4.5" fill={theme.aura} stroke={line} strokeWidth="1.4" />
+      <ellipse cx="110" cy="47" rx="26" ry="28" fill="#7ed491" stroke={line} strokeWidth="2" />
+      <ellipse cx="100" cy="46" rx="6" ry="10.5" fill="#10231a" transform="rotate(-8 100 46)" />
+      <ellipse cx="121" cy="46" rx="6" ry="10.5" fill="#10231a" transform="rotate(8 121 46)" />
+      <circle cx="98" cy="42" r="2" fill="#d9ffe2" opacity="0.85" /><circle cx="119" cy="42" r="2" fill="#d9ffe2" opacity="0.85" />
+      <path d="M105 63 Q110 66 116 63" fill="none" stroke="#14532d" strokeWidth="2.2" strokeLinecap="round" />
+      <ellipse cx="92" cy="58" rx="4" ry="2.4" fill="#5da86e" opacity="0.5" /><ellipse cx="129" cy="58" rx="4" ry="2.4" fill="#5da86e" opacity="0.5" />
+    </>}
+    {variant === 5 && <>
+      <path d="M86 47 Q84 19 110 19 Q136 19 134 47 Q134 61 125 66 L125 75 L95 75 L95 66 Q86 61 86 47 Z" fill="#eef1f4" stroke={line} strokeWidth="2" />
+      <ellipse cx="100" cy="46" rx="7" ry="9" fill="#171310" /><ellipse cx="121" cy="46" rx="7" ry="9" fill="#171310" />
+      <circle cx="100" cy="47" r="2.1" fill={theme.aura} /><circle cx="121" cy="47" r="2.1" fill={theme.aura} />
+      <path d="M110 53 L105.5 62 L114.5 62 Z" fill="#171310" />
+      <path d="M99 68 L99 75 M106 69 L106 75 M113 69 L113 75 M120 68 L120 75" stroke="#8b93a0" strokeWidth="2" />
+      <path d="M94 27 Q100 23 106 25" fill="none" stroke="#b9c0cb" strokeWidth="2" strokeLinecap="round" />
+    </>}
       {pose === 'idle' || ko ? <><path d="M134 84 L153 111 L143 119 L126 95 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="149" cy="115" r="7.5" fill={skin} stroke={line} strokeWidth="2" /></> : null}
       {pose === 'hit' && <><path d="M134 82 L159 55 L167 63 L143 90 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="163" cy="59" r="7.5" fill={skin} stroke={line} strokeWidth="2" /></>}
       {pose === 'charge' && <><path d="M133 83 L157 102 L149 114 L125 96 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="153" cy="108" r="7.5" fill={skin} stroke={line} strokeWidth="2" /><circle className="charge-orb" cx="163" cy="110" r="14" fill={theme.aura} opacity="0.85" /><circle cx="163" cy="110" r="6" fill="#ffffff" opacity="0.9" /></>}
@@ -136,11 +221,13 @@ export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: s
 
 function FighterThemePicker({ current, onApply }: { current: string; onApply: (avatar: string) => void }) {
   const [draft, setDraft] = useState(isValidAvatar(current) ? current : playerAvatars[0]);
+  const { variant, theme } = parseAvatar(draft);
   const randomize = () => { setDraft(playerAvatars[Math.floor(Math.random() * playerAvatars.length)]); playSfx('click'); };
   return <div className="theme-picker">
-    <div className="builder-preview"><FighterAvatar seed={draft} large /><strong>{fighterName(draft)}</strong><small>One fighter — make it yours with color</small></div>
-    <div className="avatar-grid theme-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose ${fighterName(choice)}`} aria-pressed={draft === choice} className={draft === choice ? 'selected' : ''} key={choice} onClick={() => { setDraft(choice); playSfx('click'); }}><FighterAvatar seed={choice} /><span className="fighter-name">{fighterName(choice)}</span></button>)}</div>
-    <div className="builder-row theme-actions"><button type="button" className="builder-random" onClick={randomize}>🎲 Randomize</button><button type="button" className="builder-apply" onClick={() => onApply(draft)}>Use these colors</button></div>
+    <div className="builder-preview"><FighterAvatar seed={draft} large /><strong>{fighterName(draft)}</strong><small>One fighter family — pick a variant and colors</small></div>
+    <div><span className="picker-label">Variant</span><div className="avatar-grid variant-grid">{variantNames.map((label, v) => <button type="button" key={label} aria-label={`Variant ${label}`} aria-pressed={variant === v} className={variant === v ? 'selected' : ''} onClick={() => { setDraft(encodeAvatar(v, theme)); playSfx('click'); }}><FighterAvatar seed={encodeAvatar(v, theme)} /><span className="fighter-name">{label}</span></button>)}</div></div>
+    <div><span className="picker-label">Color theme</span><div className="avatar-grid theme-grid">{fighterThemes.map((choice, i) => <button type="button" key={choice.name} aria-label={`Theme ${choice.name}`} aria-pressed={theme === i} className={theme === i ? 'selected' : ''} onClick={() => { setDraft(encodeAvatar(variant, i)); playSfx('click'); }}><FighterAvatar seed={encodeAvatar(variant, i)} /><span className="fighter-name">{choice.name}</span></button>)}</div></div>
+    <div className="builder-row theme-actions"><button type="button" className="builder-random" onClick={randomize}>🎲 Randomize</button><button type="button" className="builder-apply" onClick={() => onApply(draft)}>Use this fighter</button></div>
   </div>;
 }
 
@@ -949,7 +1036,7 @@ export function App() {
   const refreshSoloBoards = useCallback(async () => {
     try {
       const [board, open] = await Promise.all([fetch('/api/solo/leaderboard', { cache: 'no-store' }), fetch('/api/solo/open', { cache: 'no-store' })]);
-      if (board.ok) setSoloLeaderboard((await board.json()).entries ?? []);
+      if (board.ok) setSoloLeaderboard(((await board.json()).entries ?? []).filter((entry: { streak: number; result: string }) => entry.streak >= 2 && entry.result !== 'FORFEIT').slice(0, 5));
       if (open.ok) setOpenChallenges((await open.json()).open ?? []);
     } catch { /* boards are best-effort */ }
   }, []);

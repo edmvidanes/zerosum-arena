@@ -63,6 +63,9 @@ export function openDatabase(dataDir) {
     bank_id TEXT, bank_name TEXT NOT NULL DEFAULT '', streak INTEGER NOT NULL DEFAULT 0,
     ladder_length INTEGER NOT NULL DEFAULT 0, result TEXT NOT NULL, ended_at INTEGER NOT NULL
   );`);
+  // Leaderboard holds only the top 5 genuine streaks (streak >= 2, no forfeits).
+  db.exec(`DELETE FROM solo_leaderboard WHERE streak < 2 OR result='FORFEIT';
+    DELETE FROM solo_leaderboard WHERE code NOT IN (SELECT code FROM solo_leaderboard ORDER BY streak DESC, ended_at DESC LIMIT 5);`);
   db.exec(`CREATE TABLE IF NOT EXISTS challenge_queue (
     player_id TEXT PRIMARY KEY, bank_id TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL DEFAULT '☁️',
     token_hash TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
