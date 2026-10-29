@@ -37,16 +37,23 @@ const createDraftQuestion = (): DraftQuestion => ({
 });
 const domainNames: Record<number, string> = { 1: 'Cloud Concepts', 2: 'Security & Compliance', 3: 'Technology & Services', 4: 'Billing, Pricing & Support' };
 const questionLabel = (question: QuestionPreview) => question.domain ? (domainNames[question.domain] ?? `Domain ${question.domain}`) : question.type === 'TRUE_FALSE' ? 'True or false' : 'Multiple choice';
-const playerAvatars = Array.from({ length: 12 }, (_, index) => `sprite-${String(index + 1).padStart(2, '0')}`);
-const fighterNames = ['Crimson Ronin', 'Amber Ronin', 'Golden Ronin', 'Verdant Ronin', 'Azure Ronin', 'Violet Ronin', 'Cobalt Samurai', 'Royal Samurai', 'Magenta Samurai', 'Rust Samurai', 'Solar Samurai', 'Jade Samurai'];
+const playerAvatars = Array.from({ length: 50 }, (_, index) => `sprite-${String(index + 1).padStart(2, '0')}`);
+const fighterNames = [
+  'Crimson Ronin', 'Amber Ronin', 'Golden Ronin', 'Verdant Ronin', 'Azure Ronin', 'Violet Ronin', 'Scarlet Ronin', 'Jade Ronin', 'Onyx Ronin', 'Pearl Ronin',
+  'Coral Ronin', 'Lime Ronin', 'Teal Ronin', 'Indigo Ronin', 'Magenta Ronin', 'Frost Ronin', 'Ember Ronin', 'Solar Ronin', 'Lunar Ronin', 'Storm Ronin',
+  'Sand Ronin', 'Rose Ronin', 'Copper Ronin', 'Mint Ronin', 'Shadow Ronin',
+  'Cobalt Samurai', 'Royal Samurai', 'Ruby Samurai', 'Sapphire Samurai', 'Emerald Samurai', 'Amethyst Samurai', 'Topaz Samurai', 'Opal Samurai', 'Garnet Samurai', 'Turquoise Samurai',
+  'Bronze Samurai', 'Silver Samurai', 'Obsidian Samurai', 'Ivory Samurai', 'Cherry Samurai', 'Ocean Samurai', 'Forest Samurai', 'Desert Samurai', 'Thunder Samurai', 'Sakura Samurai',
+  'Iron Samurai', 'Bamboo Samurai', 'Wave Samurai', 'Flame Samurai', 'Star Samurai',
+];
 export type SpritePose = 'idle' | 'charge' | 'attack' | 'hit' | 'block' | 'ko' | 'win';
 const spritePoseColumns: Record<SpritePose, number> = { idle: 0, charge: 2, attack: 3, hit: 4, block: 5, ko: 6, win: 7 };
 export function spriteRow(seed?: string) {
   const match = String(seed ?? '').match(/^sprite-(\d{1,2})$/);
-  if (match) return Math.min(11, Math.max(0, Number(match[1]) - 1));
+  if (match) return Math.min(49, Math.max(0, Number(match[1]) - 1));
   let hash = 0;
   for (const char of String(seed ?? 'F')) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return hash % 12;
+  return hash % 50;
 }
 export function fighterName(seed?: string) { return fighterNames[spriteRow(seed)]; }
 const initialUrlCode = new URLSearchParams(location.search).get('code')?.toUpperCase() ?? '';
@@ -72,7 +79,7 @@ function playerName(players: PublicPlayer[], id: string) {
 export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: string; large?: boolean; pose?: SpritePose }) {
   const row = spriteRow(seed);
   const col = spritePoseColumns[pose];
-  const y = `${(row / 11) * 100}%`;
+  const y = `${(row / 49) * 100}%`;
   const x = `${(col / 7) * 100}%`;
   const idleX = `${(1 / 7) * 100}%`;
   return <span className={`fighter-sprite pose-${pose} ${large ? 'large' : ''}`} role="img" aria-label={`${fighterName(seed)} fighter sprite`}
@@ -1507,8 +1514,8 @@ export function App() {
     {damageEffect && <DamageOverlay key={damageEffect.key} amount={damageEffect.amount} player={me} />}
     <header><div className="brand"><span className="cloud-mark">Ø</span>ZEROSUM <span className="live-dot">LIVE</span></div><div className="round-pill">ROUND {snapshot.tournament.round} · CHALLENGE {snapshot.question.number}</div></header>
     {snapshot.tournament.mode === 'SOLO' && <div className="solo-hud"><span>🔥 STREAK {snapshot.tournament.streak}</span><span>RIVAL {snapshot.tournament.rivalIndex}/{snapshot.tournament.ladderLength}</span><span>{snapshot.tournament.feedbackMode === 'LEARN' ? '📖 LEARN MODE' : '📝 EXAM MODE'}</span>{snapshot.tournament.allowChallenge && <span>⚔ OPEN TO CHALLENGERS</span>}</div>}
-    {snapshot.tournament.mode === 'SOLO' && <div className="forfeit-row">{confirmForfeit ? <><span>Forfeit this run? Your 🔥 {snapshot.tournament.streak} streak is recorded on the leaderboard and the run ends, so you can join another class or game right away.</span><button type="button" className="danger-action" onClick={() => { send('forfeitSoloRun', { code: snapshot.tournament.code, playerId: clientId }); setConfirmForfeit(false); playSfx('lose'); }}>Yes, forfeit run</button><button type="button" className="secondary-action" onClick={() => setConfirmForfeit(false)}>Keep fighting</button></> : <button type="button" className="danger-link" onClick={() => { setConfirmForfeit(true); playSfx('click'); }}>🏳 Forfeit run &amp; exit</button>}</div>}
     <BattleStage me={me} opponents={opponents.map((id) => snapshot.players.find((player) => player.id === id)).filter((player): player is PublicPlayer => Boolean(player))} combat={snapshot.combat} charging={Boolean(answered)} gameMode={snapshot.tournament.gameMode} />
+    {snapshot.tournament.mode === 'SOLO' && <div className="forfeit-row in-battle">{confirmForfeit ? <><span>Forfeit this run? Your 🔥 {snapshot.tournament.streak} streak is recorded on the leaderboard and the run ends, so you can join another class or game right away.</span><button type="button" className="danger-action" onClick={() => { send('forfeitSoloRun', { code: snapshot.tournament.code, playerId: clientId }); setConfirmForfeit(false); playSfx('lose'); }}>Yes, forfeit run</button><button type="button" className="secondary-action" onClick={() => setConfirmForfeit(false)}>Keep fighting</button></> : <button type="button" className="forfeit-button" onClick={() => { setConfirmForfeit(true); playSfx('click'); }}>🏳 Forfeit run &amp; exit</button>}</div>}
     <div className={`timer ${remaining <= 5 ? 'danger' : ''}`}><span style={{ '--progress': `${Math.max(0, Math.min(100, remaining / snapshot.tournament.questionSeconds * 100))}%` } as React.CSSProperties}></span><strong>{remaining}</strong></div>
     {snapshot.notice && <div className="battle-notice">⚡ {snapshot.notice}</div>}
     <section className={`question-card ${snapshot.tournament.gameMode === 'RPS' ? 'rps-card' : ''}`}><div className="question-meta"><div className="eyebrow">{snapshot.tournament.gameMode === 'RPS' ? 'PICK YOUR MOVE' : 'SELECT THE BEST ANSWER'}</div>{snapshot.question.domain && <span>DOMAIN {snapshot.question.domain}</span>}</div><h1>{snapshot.question.text}</h1><div className="answers">{snapshot.question.options.map((option, index) => <button aria-label={`${snapshot.tournament.gameMode === 'RPS' ? 'Move' : 'Answer'} ${String.fromCharCode(65 + index)}: ${option}`} key={option} disabled={Boolean(answered) || remaining === 0} onClick={() => answer(index)}><span>{String.fromCharCode(65 + index)}</span>{option}<kbd>{String.fromCharCode(65 + index)}</kbd></button>)}</div></section>

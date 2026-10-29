@@ -12,7 +12,7 @@ const lobbyTimeoutMs = 20 * 60 * 1000;
 const rpsMoves = ['Rock 🪨', 'Paper 📄', 'Scissors ✂️'];
 const arenaTones = new Set(['RESPECTFUL', 'FRIENDLY', 'COMPETITIVE', 'RAGEBAIT', 'NO_MERCY']);
 const arenaTone = (value) => arenaTones.has(String(value ?? '').toUpperCase()) ? String(value).toUpperCase() : 'RESPECTFUL';
-const playerAvatars = new Set(Array.from({ length: 12 }, (_, index) => `sprite-${String(index + 1).padStart(2, '0')}`));
+const playerAvatars = new Set(Array.from({ length: 50 }, (_, index) => `sprite-${String(index + 1).padStart(2, '0')}`));
 
 export class ZerosumGame {
   constructor(db, options = {}) {
