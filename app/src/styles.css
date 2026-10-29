@@ -461,3 +461,28 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 
 .picker-label { display: block; font-size: 11px; letter-spacing: .12em; color: #9fb4d8; text-transform: uppercase; margin-bottom: 6px; }
 .variant-grid { grid-template-columns: repeat(6, 1fr); padding-top: 0; }
+
+/* Recent champions dropdown + tournament history */
+.champions-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
+.champions-toggle strong { display: block; font: 700 20px "Chakra Petch", sans-serif; color: #f2fbff; margin-top: 2px; }
+.champions-chevron { font-size: 22px; color: #ff9d3a; }
+.winners-list { margin-top: 14px; }
+.winners-list li { padding: 0; overflow: hidden; }
+.winner-row { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 8px 10px; cursor: pointer; color: inherit; text-align: left; }
+.winner-row:hover { background: #ff9d3a14; }
+.winner-row .board-name { flex: 1 1 auto; }
+.winner-row em { color: #9fb4d8; font-style: normal; font-size: 12px; white-space: nowrap; }
+.history-champion { display: flex; gap: 16px; align-items: center; background: #121a2e; border: 1px solid #ffd23e55; border-radius: 14px; padding: 14px; margin-top: 14px; }
+.history-champion small { display: block; letter-spacing: .14em; color: #ffd23e; font-size: 11px; }
+.history-champion strong { display: block; font-size: 22px; color: #fff; }
+.history-champion span { color: #9fb4d8; font-size: 13px; }
+.history-heading { margin: 18px 0 8px; font: 700 15px "Chakra Petch", sans-serif; color: #f2fbff; }
+.history-matches { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow: auto; }
+.history-match { display: flex; gap: 10px; align-items: baseline; background: #0d1626; border: 1px solid #37b8d333; border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+.history-match span { color: #9fb4d8; white-space: nowrap; }
+.history-match b { flex: 1; color: #e8f4ff; }
+.history-match em { color: #ffd23e; font-style: normal; white-space: nowrap; }
+.history-events { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow: auto; font-size: 13px; }
+.history-events div { display: flex; gap: 10px; }
+.history-events time { color: #7f95b5; white-space: nowrap; }
+.history-events span { color: #cfe3f5; }

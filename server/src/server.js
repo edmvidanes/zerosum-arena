@@ -164,6 +164,28 @@ const server = http.createServer(async (request, response) => {
     const entries = db.prepare('SELECT code, name, avatar, bank_name AS bankName, streak, ladder_length AS ladderLength, result, ended_at AS endedAt FROM solo_leaderboard WHERE streak >= 2 AND result != \'FORFEIT\' ORDER BY streak DESC, ended_at DESC LIMIT 5').all();
     return sendJson(response, 200, { entries });
   }
+  if (request.method === 'GET' && url.pathname === '/api/tournaments/recent-winners') {
+    const entries = db.prepare('SELECT code, champion_name AS championName, champion_avatar AS championAvatar, bank_name AS bankName, player_count AS playerCount, rounds, ended_at AS endedAt FROM tournament_winners ORDER BY ended_at DESC LIMIT 5').all();
+    return sendJson(response, 200, { entries });
+  }
+  if (request.method === 'GET' && url.pathname.startsWith('/api/tournaments/') && url.pathname.endsWith('/history')) {
+    const code = decodeURIComponent(url.pathname.split('/')[3] ?? '').trim().toUpperCase();
+    const tournament = db.prepare('SELECT * FROM tournaments WHERE code=?').get(code);
+    if (!tournament) return sendJson(response, 404, { error: 'Tournament not found.' });
+    if (!['COMPLETE', 'CANCELLED'].includes(tournament.phase)) return sendJson(response, 403, { error: 'History is available after the tournament ends.' });
+    const bank = tournament.bank_id ? db.prepare('SELECT name FROM question_banks WHERE id=?').get(tournament.bank_id) : null;
+    const players = db.prepare("SELECT id, name, avatar, hp, status FROM players WHERE code=? ORDER BY (status='CHAMPION') DESC, hp DESC, joined_at ASC").all(code);
+    const nameOf = new Map(players.map((player) => [player.id, player.name]));
+    const matches = db.prepare('SELECT round, participant_ids AS participantIds, winner_id AS winnerId, question_number AS questionNumber FROM matches WHERE code=? ORDER BY round ASC, question_number ASC').all(code)
+      .map((match) => {
+        let ids = [];
+        try { ids = JSON.parse(match.participantIds); } catch { ids = []; }
+        return { round: match.round, questionNumber: match.questionNumber, participants: ids.map((id) => nameOf.get(id) ?? 'Unknown'), winnerName: match.winnerId ? (nameOf.get(match.winnerId) ?? null) : null };
+      });
+    const events = db.prepare('SELECT at, kind, message FROM events WHERE code=? ORDER BY at ASC LIMIT 200').all(code);
+    const champion = players.find((player) => player.id === tournament.champion_id) ?? null;
+    return sendJson(response, 200, { code, phase: tournament.phase, bankName: bank?.name ?? '', rounds: tournament.round, playerCount: tournament.player_count, champion, players, matches, events });
+  }
   if (request.method === 'GET' && url.pathname === '/api/solo/open') {
     const open = db.prepare(`SELECT t.code, t.streak, t.rival_index AS rivalIndex, t.ladder_length AS ladderLength, t.bank_id AS bankId,
       b.name AS bankName, p.name AS playerName, p.avatar AS playerAvatar

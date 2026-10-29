@@ -66,6 +66,11 @@ export function openDatabase(dataDir) {
   // Leaderboard holds only the top 5 genuine streaks (streak >= 2, no forfeits).
   db.exec(`DELETE FROM solo_leaderboard WHERE streak < 2 OR result='FORFEIT';
     DELETE FROM solo_leaderboard WHERE code NOT IN (SELECT code FROM solo_leaderboard ORDER BY streak DESC, ended_at DESC LIMIT 5);`);
+  db.exec(`CREATE TABLE IF NOT EXISTS tournament_winners (
+    code TEXT PRIMARY KEY, champion_name TEXT NOT NULL, champion_avatar TEXT NOT NULL DEFAULT 'arena-01',
+    bank_name TEXT NOT NULL DEFAULT '', player_count INTEGER NOT NULL DEFAULT 0,
+    rounds INTEGER NOT NULL DEFAULT 0, ended_at INTEGER NOT NULL
+  );`);
   db.exec(`CREATE TABLE IF NOT EXISTS challenge_queue (
     player_id TEXT PRIMARY KEY, bank_id TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL DEFAULT '☁️',
     token_hash TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL

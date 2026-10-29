@@ -445,6 +445,17 @@ export class ZerosumGame {
     return botId;
   }
 
+  recordTournamentWinner(code, winner, round) {
+    const tournament = this.tournament(code);
+    if (!tournament || tournament.mode === 'SOLO') return;
+    const bank = this.bankForTournament(code);
+    this.db.prepare(`INSERT INTO tournament_winners (code, champion_name, champion_avatar, bank_name, player_count, rounds, ended_at)
+      VALUES (?,?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET champion_name=excluded.champion_name, champion_avatar=excluded.champion_avatar, bank_name=excluded.bank_name, player_count=excluded.player_count, rounds=excluded.rounds, ended_at=excluded.ended_at`)
+      .run(code, winner.name, winner.avatar, bank?.name ?? '', tournament.player_count ?? 0, round, Date.now());
+    // Keep only the 5 most recent champions, mirroring the solo leaderboard cap.
+    this.db.prepare(`DELETE FROM tournament_winners WHERE code NOT IN (SELECT code FROM tournament_winners ORDER BY ended_at DESC LIMIT 5)`).run();
+  }
+
   recordSoloResult(code, result) {
     const tournament = this.tournament(code);
     const human = this.player(code, tournament.solo_player_id);
@@ -730,6 +741,7 @@ export class ZerosumGame {
         this.db.prepare(`UPDATE players SET status='CHAMPION' WHERE code=? AND id=?`).run(code, winner.id);
       })();
       this.recordEvent(code, 'CHAMPION_CROWNED', `${winner.name} won the tournament!`, { playerId: winner.id, hp: winner.hp, round });
+      this.recordTournamentWinner(code, winner, round);
     } else {
       this.recordEvent(code, 'ROUND_COMPLETED', `Round ${round} finished. Waiting for the instructor to start Round ${round + 1}.`, {
         round, nextRound: round + 1, survivingPlayerIds: winners.map((winner) => winner.id),
