@@ -58,6 +58,11 @@ export function openDatabase(dataDir) {
     );
     CREATE INDEX IF NOT EXISTS idx_banks_owner ON question_banks(owner_id, updated_at DESC);
   `);
+  db.exec(`CREATE TABLE IF NOT EXISTS solo_leaderboard (
+    code TEXT PRIMARY KEY, name TEXT NOT NULL, avatar TEXT NOT NULL DEFAULT '☁️',
+    bank_id TEXT, bank_name TEXT NOT NULL DEFAULT '', streak INTEGER NOT NULL DEFAULT 0,
+    ladder_length INTEGER NOT NULL DEFAULT 0, result TEXT NOT NULL, ended_at INTEGER NOT NULL
+  );`);
   db.exec(`CREATE TABLE IF NOT EXISTS challenge_queue (
     player_id TEXT PRIMARY KEY, bank_id TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL DEFAULT '☁️',
     token_hash TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL

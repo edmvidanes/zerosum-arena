@@ -433,6 +433,16 @@ export class ZerosumGame {
     return botId;
   }
 
+  recordSoloResult(code, result) {
+    const tournament = this.tournament(code);
+    const human = this.player(code, tournament.solo_player_id);
+    if (!human) return;
+    const bank = this.bankForTournament(code);
+    this.db.prepare(`INSERT INTO solo_leaderboard (code, name, avatar, bank_id, bank_name, streak, ladder_length, result, ended_at)
+      VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET streak=excluded.streak, result=excluded.result, ended_at=excluded.ended_at`)
+      .run(code, human.name, human.avatar, tournament.bank_id, bank.name, tournament.streak ?? 0, tournament.ladder_length ?? 0, result, Date.now());
+  }
+
   advanceSolo(code, match) {
     const tournament = this.tournament(code);
     const humanId = tournament.solo_player_id;
@@ -442,6 +452,8 @@ export class ZerosumGame {
         this.db.prepare(`UPDATE tournaments SET phase='COMPLETE', champion_id=?, streak=?, updated_at=? WHERE code=?`).run(winnerId, tournament.streak, Date.now(), code);
         this.db.prepare(`UPDATE players SET status='CHAMPION' WHERE code=? AND id=?`).run(code, winnerId);
       })();
+      this.db.prepare('UPDATE tournaments SET streak=? WHERE code=?').run(tournament.streak ?? 0, code);
+      this.recordSoloResult(code, winnerId && this.player(code, winnerId)?.is_bot ? 'DEFEATED' : 'CHALLENGED');
       this.recordEvent(code, 'STREAK_ENDED', `The streak ended at ${tournament.streak}.`, { winnerId, streak: tournament.streak });
       this.broadcast(code);
       return;
@@ -452,6 +464,8 @@ export class ZerosumGame {
         this.db.prepare(`UPDATE tournaments SET phase='COMPLETE', champion_id=?, streak=?, updated_at=? WHERE code=?`).run(humanId, streak, Date.now(), code);
         this.db.prepare(`UPDATE players SET status='CHAMPION' WHERE code=? AND id=?`).run(code, humanId);
       })();
+      this.db.prepare('UPDATE tournaments SET streak=? WHERE code=?').run(streak, code);
+      this.recordSoloResult(code, 'LADDER_CLEARED');
       this.recordEvent(code, 'LADDER_CLEARED', 'Ladder cleared!', { streak });
       this.broadcast(code);
       return;

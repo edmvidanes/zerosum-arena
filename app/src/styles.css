@@ -320,3 +320,49 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .solo-review { width: min(860px, 100%); margin: 22px auto; text-align: left; }
 .solo-result { max-width: 960px; }
 @media (max-width: 700px) { .choice-grid { grid-template-columns: 1fr; } }
+/* ===== Gamified DBZ Arena overhaul: fighters, boards, SFX, theme ===== */
+.fighter-avatar-svg { width: 38px; height: 38px; flex: 0 0 auto; filter: drop-shadow(0 0 8px #ffae4f55); }
+.fighter-avatar-svg.large { width: 96px; height: 96px; }
+.player-avatar .fighter-avatar-svg, .avatar-preview .fighter-avatar-svg { width: 100%; height: 100%; }
+.fighter-body .fighter-avatar-svg { width: 100%; height: 100%; }
+.hero-fighters { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 0 auto 14px; }
+.hero-fighters .fighter-avatar-svg { width: 92px; height: 92px; filter: drop-shadow(0 0 18px #ff9d3a88); animation: hover 3s ease-in-out infinite; }
+.hero-fighters .fighter-avatar-svg:last-child { animation-delay: -1.5s; transform: scaleX(-1); }
+.hero-vs { color: #ffd76a; font: 900 clamp(34px, 6vw, 54px) "Chakra Petch", sans-serif; text-shadow: 0 0 26px #ff9d3a, 0 4px 0 #7a2c05; transform: rotate(-6deg); }
+.board-card { width: min(880px, 100%); margin: 22px auto 0; padding: 24px 26px; border: 1px solid #ffae4f44; border-radius: 18px; background: linear-gradient(160deg, #14232f, #2a1a0c 140%); box-shadow: 0 20px 60px #0008, inset 0 1px 0 #ffe1a722; text-align: left; }
+.board-card .section-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.board-card .section-title h2 { margin: 2px 0 0; color: #ffd9a3; font: 800 clamp(20px, 3.4vw, 28px) "Chakra Petch", sans-serif; letter-spacing: .02em; }
+.board-card .section-title > span { color: #ffb45e; font: 700 11px "Chakra Petch", sans-serif; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.leaderboard-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.leaderboard-list li { display: flex; align-items: center; gap: 12px; padding: 9px 13px; border: 1px solid #8bbdce22; border-radius: 12px; background: #0a1a26aa; color: #d9e9ef; font-size: 14px; }
+.leaderboard-list li > b { color: #ffd76a; font: 800 15px "Chakra Petch", sans-serif; min-width: 30px; }
+.leaderboard-list li:first-child { border-color: #ffd76a88; background: linear-gradient(90deg, #3b2411, #0a1a26); box-shadow: 0 0 22px #ff9d3a33; }
+.leaderboard-list li.mine { border-color: #4fd59a; background: #09251dcc; box-shadow: 0 0 18px #4fd59a33; }
+.leaderboard-list .fighter-avatar-svg { width: 34px; height: 34px; }
+.board-name { font-weight: 700; color: #fff; }
+.board-name small { color: #ffb45e; font: 700 11px "Chakra Petch", sans-serif; }
+.board-bank { color: #88aeb9; font-size: 12px; margin-left: auto; text-align: right; }
+.leaderboard-list li > strong { color: #ffb45e; font: 800 15px "Chakra Petch", sans-serif; white-space: nowrap; }
+.leaderboard-list li > em { font-style: normal; font-size: 12px; color: #d9e9ef; white-space: nowrap; }
+.result-board .leaderboard-list li { background: #0a1a2688; }
+.open-list { display: grid; gap: 10px; }
+.open-list article { display: flex; align-items: center; gap: 13px; padding: 11px 14px; border: 1px solid #57d8ff33; border-radius: 12px; background: #0a1a26aa; color: #d9e9ef; }
+.open-list article > div { display: grid; gap: 2px; margin-right: auto; }
+.open-list article b { color: #fff; font-size: 15px; }
+.open-list article b small { color: #57d8ff; font: 700 11px "Chakra Petch", sans-serif; }
+.open-list article span { color: #a8c7d2; font-size: 12px; }
+.open-list article button { border: 0; border-radius: 8px; padding: 10px 15px; background: linear-gradient(135deg, #ffad43, #ff7b27); color: #1b1008; font: 800 12px "Chakra Petch", sans-serif; letter-spacing: .06em; cursor: pointer; box-shadow: 0 6px 18px #ff852d33; }
+.open-list article button:hover { filter: brightness(1.1); }
+.open-list.in-panel { margin-top: 12px; }
+.sfx-control { position: fixed; right: 86px; bottom: 18px; z-index: 60; width: 46px; height: 46px; border-radius: 50%; border: 1px solid #ffae4f66; background: #14232fee; color: #ffd9a3; font-size: 19px; cursor: pointer; box-shadow: 0 8px 24px #0009; }
+.sfx-control.muted { opacity: .45; filter: grayscale(1); }
+/* theme: hotter orange/gold arena energy across the landing */
+.hero h1 { text-shadow: 0 0 34px #ff9d3a55, 0 3px 0 #7a2c05; }
+.hero .eyebrow { color: #ffb45e; }
+.choice { border-color: #ffae4f33; transition: .2s; }
+.choice:hover { border-color: #ffb45e; box-shadow: 0 14px 40px #ff7a2f2b, 0 0 0 1px #ffb45e55; }
+.choice b { color: #ffd9a3; }
+.action { box-shadow: 0 9px 30px #ff852d45, 0 0 0 1px #ffe1a733; }
+.action:hover:not(:disabled) { filter: brightness(1.08); }
+.panel { border-color: #ffae4f2e; }
+@media (max-width: 700px) { .board-card { padding: 18px 15px; } .leaderboard-list li { flex-wrap: wrap; } .board-bank { margin-left: 0; } .hero-fighters .fighter-avatar-svg { width: 64px; height: 64px; } .sfx-control { right: 76px; } }

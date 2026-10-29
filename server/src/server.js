@@ -160,6 +160,19 @@ const server = http.createServer(async (request, response) => {
     publicBeta: publicBetaMode, authenticated: identity.authenticated,
     canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks,
   });
+  if (request.method === 'GET' && url.pathname === '/api/solo/leaderboard') {
+    const entries = db.prepare('SELECT code, name, avatar, bank_name AS bankName, streak, ladder_length AS ladderLength, result, ended_at AS endedAt FROM solo_leaderboard ORDER BY streak DESC, ended_at DESC LIMIT 50').all();
+    return sendJson(response, 200, { entries });
+  }
+  if (request.method === 'GET' && url.pathname === '/api/solo/open') {
+    const open = db.prepare(`SELECT t.code, t.streak, t.rival_index AS rivalIndex, t.ladder_length AS ladderLength, t.bank_id AS bankId,
+      b.name AS bankName, p.name AS playerName, p.avatar AS playerAvatar
+      FROM tournaments t LEFT JOIN question_banks b ON b.id = t.bank_id
+      LEFT JOIN players p ON p.code = t.code AND p.id = t.solo_player_id
+      WHERE t.mode = 'SOLO' AND t.phase = 'IN_ROUND' AND t.allow_challenge = 1 ORDER BY t.streak DESC, t.updated_at DESC LIMIT 50`).all();
+    const queue = db.prepare('SELECT bank_id AS bankId, COUNT(*) AS waiting FROM challenge_queue WHERE expires_at > ? GROUP BY bank_id').all(Date.now());
+    return sendJson(response, 200, { open, queue });
+  }
   if (request.method === 'GET' && url.pathname === '/api/banks') {
     if (!account) return sendJson(response, 401, { error: 'Sign in to manage challenge packs.' });
     const banks = listBanks(db, account.id);
