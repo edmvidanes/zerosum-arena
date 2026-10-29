@@ -72,7 +72,7 @@ check('A champion is crowned', Boolean(champion), champion ? `${champion.name} (
 
 const winners = await (await fetch(BASE + '/api/tournaments/recent-winners')).json();
 const entry = (winners.entries ?? []).find((e) => e.code === code);
-check('Recent-winners API lists this champion (top 5)', Boolean(entry) && entry.championName === champion?.name && (winners.entries?.length ?? 99) <= 5, entry ? `${entry.championName} · ${entry.bankName} · ${entry.playerCount} players · ${entry.rounds} rounds` : JSON.stringify(winners).slice(0, 160));
+check('Recent-winners API lists this champion (last 10)', Boolean(entry) && entry.championName === champion?.name && (winners.entries?.length ?? 99) <= 10, entry ? `${entry.championName} · ${entry.bankName} · ${entry.playerCount} players · ${entry.rounds} rounds` : JSON.stringify(winners).slice(0, 160));
 
 const histRes = await fetch(`${BASE}/api/tournaments/${code}/history`);
 const hist = await histRes.json();
