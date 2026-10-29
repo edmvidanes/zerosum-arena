@@ -277,8 +277,23 @@ export class ZerosumGame {
     const tournament = this.tournament(code);
     if (!ws.account || ws.account.id !== tournament.owner_id) throw new Error('Sign in with the account that created this tournament.');
     if (!message.hostToken || hash(message.hostToken) !== tournament.host_token_hash) throw new Error('Only the instructor can cancel this tournament.');
-    if (tournament.phase !== 'LOBBY') throw new Error('Only a tournament that has not started can be cancelled.');
-    this.endLobby(code, 'TOURNAMENT_CANCELLED', 'Instructor cancelled the tournament before it started.');
+    if (tournament.phase === 'COMPLETE' || tournament.phase === 'CANCELLED') throw new Error('This tournament has already ended.');
+    if (tournament.phase === 'LOBBY') {
+      this.endLobby(code, 'TOURNAMENT_CANCELLED', 'Instructor cancelled the tournament before it started.');
+      return;
+    }
+    // Mid-game kill switch: stop every timer for this tournament, close any
+    // open matches, and mark it cancelled so it cannot linger as active.
+    clearTimeout(this.lobbyTimers.get(code)); this.lobbyTimers.delete(code);
+    clearTimeout(this.autoTimers.get(code)); this.autoTimers.delete(code);
+    for (const [key, timer] of [...this.deadlineTimers.entries()]) if (key.startsWith(`${code}:`)) { clearTimeout(timer); this.deadlineTimers.delete(key); }
+    for (const [key, timer] of [...this.botTimers.entries()]) if (key.startsWith(`${code}:`)) { clearTimeout(timer); this.botTimers.delete(key); }
+    this.db.transaction(() => {
+      this.db.prepare(`UPDATE matches SET phase='COMPLETE' WHERE code=? AND phase!='COMPLETE'`).run(code);
+      this.db.prepare(`UPDATE tournaments SET phase='CANCELLED', updated_at=? WHERE code=?`).run(Date.now(), code);
+    })();
+    this.recordEvent(code, 'TOURNAMENT_CANCELLED', 'Instructor cancelled the tournament.');
+    this.broadcast(code);
   }
 
   shuffled(items) {
