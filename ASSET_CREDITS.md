@@ -16,3 +16,7 @@
 - Roster reduced from 50 hue clones to 25 curated fighters (12 armor palettes x 2 bases + 1 gold champion).
 - Players can build a custom fighter (base style, armor color, helm, weapon, aura) or randomize one; new players start with a random custom fighter. Custom fighters are encoded as c<base>.<armor>.<helm>.<weapon>.<aura> and rendered from the same sprite sheet with vector helm/weapon overlays.
 
+
+## Update: single original fighter
+- Removed the LuizMelo sprite sheets, the 25-fighter roster, and all helm/weapon overlays.
+- The game now uses ONE original vector fighter drawn in code (SVG), with 7 poses (idle, charge, attack, hit, block, KO, win) and 8 color themes. No external character assets are used.

@@ -50,7 +50,7 @@ test('solo run starts instantly against a bot, streak advances and HP resets', (
   const ctx = setup();
   try {
     const socket = new FakeSocket();
-    ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', avatar: 'sprite-02', bankId: 'bank-test', ladderLength: 5, feedbackMode: 'LEARN', allowChallenge: false });
+    ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', avatar: 'arena-02', bankId: 'bank-test', ladderLength: 5, feedbackMode: 'LEARN', allowChallenge: false });
     const created = socket.messages.find((message) => message.type === 'soloCreated');
     assert.ok(created);
     assert.equal(ctx.game.tournament(created.code).mode, 'SOLO');
@@ -90,7 +90,7 @@ test('a queued challenger takes the first rival slot when challenges are allowed
   const ctx = setup();
   try {
     const challengerSocket = new FakeSocket();
-    ctx.game.joinChallengeQueue(challengerSocket, { playerId: CHALLENGER, name: 'Rival', avatar: 'sprite-08', bankId: 'bank-test' });
+    ctx.game.joinChallengeQueue(challengerSocket, { playerId: CHALLENGER, name: 'Rival', avatar: 'arena-06', bankId: 'bank-test' });
     assert.ok(challengerSocket.messages.find((message) => message.type === 'queued'));
     const socket = new FakeSocket();
     ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', bankId: 'bank-test', ladderLength: 5, allowChallenge: true });
@@ -130,7 +130,7 @@ test('forfeiting a solo run ends it, records the streak, and frees the player', 
   const ctx = setup();
   try {
     const socket = new FakeSocket();
-    ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', avatar: 'sprite-02', bankId: 'bank-test', ladderLength: 5, feedbackMode: 'LEARN', allowChallenge: false });
+    ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', avatar: 'arena-02', bankId: 'bank-test', ladderLength: 5, feedbackMode: 'LEARN', allowChallenge: false });
     const created = socket.messages.find((message) => message.type === 'soloCreated');
     ctx.game.forfeitSoloRun(socket, { code: created.code, playerId: HUMAN });
     assert.equal(ctx.game.tournament(created.code).phase, 'COMPLETE');

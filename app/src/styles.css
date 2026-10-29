@@ -437,3 +437,24 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .builder-divider { text-align: center; color: #9fb4d8; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin: 4px 0 10px; }
 
 .builder-random { background: #1b2742; color: #ffd23e; border: 1px solid #ffd23e88; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+
+/* Single original arena fighter (replaces all sprite sheets) */
+.fighter-avatar-svg { width: 44px; height: 44px; flex: 0 0 auto; filter: drop-shadow(0 3px 6px #0009); }
+.fighter-avatar-svg.large { width: 120px; height: 120px; }
+.player-avatar .fighter-avatar-svg, .avatar-preview .fighter-avatar-svg { width: 100%; height: 100%; }
+.fighter-body .fighter-avatar-svg { width: 150px; height: 150px; }
+.leaderboard-list .fighter-avatar-svg, .open-list .fighter-avatar-svg { width: 40px; height: 40px; }
+.avatar-grid .fighter-avatar-svg { width: 62px; height: 62px; }
+.fighter-avatar-svg.pose-idle { animation: hover 2.6s ease-in-out infinite; }
+.fighter-avatar-svg.pose-charge { animation: charge-shake .16s linear infinite; }
+@keyframes charge-shake { 0% { transform: translateX(0); } 25% { transform: translateX(1.6px); } 75% { transform: translateX(-1.6px); } 100% { transform: translateX(0); } }
+.fighter-avatar-svg .arena-aura { transform-box: fill-box; transform-origin: center; animation: aura-pulse 2.2s ease-in-out infinite; }
+@keyframes aura-pulse { 50% { opacity: .34; transform: scale(1.06); } }
+.fighter-avatar-svg .charge-orb { transform-box: fill-box; transform-origin: center; animation: aura-pulse .5s ease-in-out infinite; }
+.fighter-avatar-svg .fighter-beam { animation: beam-flash .28s ease-out infinite alternate; }
+@keyframes beam-flash { from { opacity: .75; } to { opacity: 1; } }
+.fighter-avatar-svg.pose-ko { opacity: .85; filter: grayscale(.3) drop-shadow(0 3px 6px #0009); }
+.theme-picker { display: flex; flex-direction: column; gap: 14px; padding-top: 16px; }
+.theme-grid { padding-top: 0; grid-template-columns: repeat(4, 1fr); }
+.theme-actions { justify-content: center; }
+.fighter-sprite { display: none !important; }

@@ -37,73 +37,29 @@ const createDraftQuestion = (): DraftQuestion => ({
 });
 const domainNames: Record<number, string> = { 1: 'Cloud Concepts', 2: 'Security & Compliance', 3: 'Technology & Services', 4: 'Billing, Pricing & Support' };
 const questionLabel = (question: QuestionPreview) => question.domain ? (domainNames[question.domain] ?? `Domain ${question.domain}`) : question.type === 'TRUE_FALSE' ? 'True or false' : 'Multiple choice';
-const playerAvatars = Array.from({ length: 25 }, (_, index) => `sprite-${String(index + 1).padStart(2, '0')}`);
-const fighterNames = [
-  'Crimson Knight', 'Ember Swordsman', 'Golden Paladin', 'Verdant Archer', 'Jade Assassin', 'Azure Mage',
-  'Sapphire Rune Knight', 'Violet Warlock', 'Rose Crusader', 'Scarlet Blademaster', 'Amber Monk', 'Ruby Lord Knight',
-  'Shadow Assassin', 'Frost Swordsman', 'Storm Ranger', 'Forest Hunter', 'Ocean Duelist', 'Sapphire Pirate',
-  'Indigo Ninja', 'Amethyst Sorcerer', 'Pink Valkyrie', 'Coral Brawler', 'Mint Healer', 'Grand Champion',
+const fighterThemes = [
+  { name: 'Inferno', gi: '#ff7a1a', giDark: '#c2410c', pants: '#2c3a5e', hair: '#3a2a1a', aura: '#ff9d3a', accent: '#ffd23e' },
+  { name: 'Azure', gi: '#1f8fe0', giDark: '#075985', pants: '#22304d', hair: '#12283f', aura: '#37b8d3', accent: '#a5f3fc' },
+  { name: 'Violet', gi: '#8b5cf6', giDark: '#5b21b6', pants: '#2a2440', hair: '#241335', aura: '#b967ff', accent: '#e9d5ff' },
+  { name: 'Emerald', gi: '#22b573', giDark: '#15803d', pants: '#26332a', hair: '#1d2b1a', aura: '#7cfc00', accent: '#d9f99d' },
+  { name: 'Crimson', gi: '#e63946', giDark: '#991b1b', pants: '#33262e', hair: '#2a1215', aura: '#ff4d6d', accent: '#fecdd3' },
+  { name: 'Solar', gi: '#f5b921', giDark: '#b45309', pants: '#3a3049', hair: '#4a2c0a', aura: '#ffd23e', accent: '#fef3c7' },
+  { name: 'Shadow', gi: '#64748b', giDark: '#1e293b', pants: '#111827', hair: '#0b0f16', aura: '#94a3b8', accent: '#e2e8f0' },
+  { name: 'Rose', gi: '#ec4899', giDark: '#9d174d', pants: '#3b2436', hair: '#33101f', aura: '#ff8fb5', accent: '#ffe4f0' },
 ];
-const armorPalettes = [
-  { name: 'Crimson', hex: '#d63a2f', hue: 0 }, { name: 'Ember', hex: '#e67e22', hue: 24 },
-  { name: 'Golden', hex: '#f1c40f', hue: 48 }, { name: 'Verdant', hex: '#7ac74f', hue: 80 },
-  { name: 'Jade', hex: '#2ecc71', hue: 120 }, { name: 'Teal', hex: '#1abc9c', hue: 160 },
-  { name: 'Azure', hex: '#3498db', hue: 195 }, { name: 'Sapphire', hex: '#5b6ee1', hue: 225 },
-  { name: 'Violet', hex: '#9b59b6', hue: 255 }, { name: 'Amethyst', hex: '#b967ff', hue: 285 },
-  { name: 'Rose', hex: '#e84393', hue: 315 }, { name: 'Scarlet', hex: '#ff6b81', hue: 340 },
-];
-const baseStyles = ['Samurai', 'Kenji'];
-const helmKinds = ['None', 'Horned Helm', 'Winged Helm', 'Crown', 'Hood', 'Knight Helm'];
-const weaponKinds = ['Sword', 'Axe', 'Bow', 'Staff', 'Dagger', 'Spear'];
-const auraColors = ['#ff9d3a', '#37b8d3', '#ff4d6d', '#7cfc00', '#b967ff', '#ffd23e'];
-export type CustomAvatar = { base: number; armor: number; helm: number; weapon: number; aura: number };
-export function parseCustomAvatar(seed?: string): CustomAvatar | null {
-  const m = String(seed ?? '').match(/^c([01])\.(\d{1,2})\.([0-5])\.([0-5])\.([0-5])$/);
-  if (!m) return null;
-  const value = { base: Number(m[1]), armor: Number(m[2]), helm: Number(m[3]), weapon: Number(m[4]), aura: Number(m[5]) };
-  return value.armor >= 0 && value.armor <= 11 ? value : null;
-}
-export const isValidAvatar = (seed?: string) => playerAvatars.includes(String(seed ?? '')) || Boolean(parseCustomAvatar(seed));
-export const encodeCustomAvatar = (v: CustomAvatar) => `c${v.base}.${v.armor}.${v.helm}.${v.weapon}.${v.aura}`;
+const playerAvatars = fighterThemes.map((_, index) => `arena-${String(index + 1).padStart(2, '0')}`);
 export type SpritePose = 'idle' | 'charge' | 'attack' | 'hit' | 'block' | 'ko' | 'win';
-const spritePoseColumns: Record<SpritePose, number> = { idle: 0, charge: 2, attack: 3, hit: 4, block: 5, ko: 6, win: 7 };
-export function spriteRow(seed?: string) {
-  const custom = parseCustomAvatar(seed);
-  if (custom) return custom.base * 12 + custom.armor;
-  const match = String(seed ?? '').match(/^sprite-(\d{1,2})$/);
-  if (match) return Math.min(24, Math.max(0, Number(match[1]) - 1));
+export function themeIndex(seed?: string) {
+  const match = String(seed ?? '').match(/^arena-(\d{1,2})$/);
+  if (match) return Math.min(7, Math.max(0, Number(match[1]) - 1));
   let hash = 0;
   for (const char of String(seed ?? 'F')) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return hash % 25;
+  return hash % fighterThemes.length;
 }
-export function fighterName(seed?: string) {
-  const custom = parseCustomAvatar(seed);
-  if (custom) return `${armorPalettes[custom.armor].name} ${baseStyles[custom.base]}`;
-  return fighterNames[spriteRow(seed)];
-}
-function HelmIcon({ kind }: { kind: number }) {
-  if (kind === 0) return null;
-  const paths = [
-    '',
-    'M3 5 L7 10 M21 5 L17 10 M5 17 Q5 8 12 8 Q19 8 19 17 Z',
-    'M2 6 Q7 8 9 11 M22 6 Q17 8 15 11 M5 17 Q5 9 12 9 Q19 9 19 17 Z',
-    'M5 17 L4 7 L9 11 L12 5 L15 11 L20 7 L19 17 Z',
-    'M12 3 Q19 5 19 14 Q19 19 15 21 L9 21 Q5 19 5 14 Q5 5 12 3 Z',
-    'M5 17 Q5 7 12 7 Q19 7 19 17 L19 20 L5 20 Z M9 14 L15 14',
-  ];
-  return <svg className="acc acc-helm" viewBox="0 0 24 24" aria-hidden="true"><path d={paths[kind]} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-function WeaponIcon({ kind }: { kind: number }) {
-  const paths = [
-    'M5 19 L17 7 M17 7 L20 4 L19 9 L14 10 M7 15 L9 17',
-    'M12 3 L12 14 M12 5 Q18 5 18 11 Q14 10 12 9 M12 14 L12 21',
-    'M7 3 Q17 12 7 21 M7 3 L7 21 M7 12 L20 12 M20 12 L17 9 M20 12 L17 15',
-    'M12 21 L12 9 M12 9 L9 5 Q12 2 15 5 L12 9 M8 13 L16 13',
-    'M6 18 L16 8 M16 8 L19 5 L18 11 L13 12 M8 14 L10 16',
-    'M12 21 L12 8 M12 8 L8 3 L12 5 L16 3 L12 8',
-  ];
-  return <svg className="acc acc-weapon" viewBox="0 0 24 24" aria-hidden="true"><path d={paths[kind]} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
+export const isValidAvatar = (seed?: string) => playerAvatars.includes(String(seed ?? ''));
+export function fighterName(seed?: string) { return `${fighterThemes[themeIndex(seed)].name} Fighter`; }
+
+
 const initialUrlCode = new URLSearchParams(location.search).get('code')?.toUpperCase() ?? '';
 const savedHostToken = sessionStorage.getItem('zerosum-host-token') ?? '';
 const savedHostCode = sessionStorage.getItem('zerosum-host-code') ?? '';
@@ -125,34 +81,66 @@ function playerName(players: PublicPlayer[], id: string) {
 }
 
 export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: string; large?: boolean; pose?: SpritePose }) {
-  const row = spriteRow(seed);
-  const col = spritePoseColumns[pose];
-  const y = `${(row / 24) * 100}%`;
-  const x = `${(col / 7) * 100}%`;
-  const idleX = `${(1 / 7) * 100}%`;
-  const custom = parseCustomAvatar(seed);
-  return <span className={`fighter-avatar-wrap ${large ? 'large' : ''}`} style={custom ? { filter: `drop-shadow(0 0 7px ${auraColors[custom.aura]}aa)` } : undefined}>
-    <span className={`fighter-sprite pose-${pose} ${large ? 'large' : ''}`} role="img" aria-label={`${fighterName(seed)} fighter sprite`}
-      style={{ backgroundPosition: `${x} ${y}`, '--bp0': x, '--bp1': idleX, '--bpy': y } as React.CSSProperties} />
-    {custom && <HelmIcon kind={custom.helm} />}
-    {custom && <WeaponIcon kind={custom.weapon} />}
-  </span>;
+  const theme = fighterThemes[themeIndex(seed)];
+  const ko = pose === 'ko';
+  const bodyTransform = ko ? 'rotate(-82 110 196)' : pose === 'charge' ? 'translate(0 12)' : pose === 'hit' ? 'rotate(-9 110 130)' : pose === 'win' ? 'translate(0 -3)' : undefined;
+  const skin = '#f0bd8d';
+  const line = 'rgba(8,14,26,.38)';
+  return <svg className={`fighter-avatar-svg pose-${pose} ${large ? 'large' : ''}`} viewBox="0 0 220 220" role="img" aria-label={`${theme.name} fighter`}>
+    <ellipse className="arena-aura" cx="110" cy="112" rx="80" ry="90" fill={theme.aura} opacity="0.16" />
+    <ellipse cx="110" cy="203" rx="60" ry="7" fill="#000000" opacity="0.35" />
+    <g transform={bodyTransform}>
+      <path d="M100 128 L87 176 L101 176 L111 138 Z" fill={theme.pants} stroke={line} strokeWidth="2" />
+      <path d="M119 128 L129 176 L143 176 L129 136 Z" fill={theme.pants} stroke={line} strokeWidth="2" />
+      <rect x="82" y="174" width="23" height="11" rx="4" fill={theme.giDark} />
+      <rect x="124" y="174" width="23" height="11" rx="4" fill={theme.giDark} />
+      {pose === 'idle' || ko ? <><path d="M86 84 L66 114 L77 121 L93 95 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="71" cy="119" r="7.5" fill={skin} stroke={line} strokeWidth="2" /></> : null}
+      {pose === 'hit' && <><path d="M86 82 L61 57 L69 48 L95 71 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="65" cy="52" r="7.5" fill={skin} stroke={line} strokeWidth="2" /></>}
+      {pose === 'charge' && <path d="M87 86 L118 107 L112 119 L81 97 Z" fill={theme.giDark} stroke={line} strokeWidth="2" />}
+      {pose === 'attack' && <path d="M87 83 L148 91 L147 103 L85 95 Z" fill={theme.giDark} stroke={line} strokeWidth="2" />}
+      {pose === 'block' && <path d="M90 79 L140 107 L133 119 L83 91 Z" fill={theme.giDark} stroke={line} strokeWidth="2" />}
+      {pose === 'win' && <path d="M86 84 L66 114 L77 121 L93 95 Z" fill={theme.gi} stroke={line} strokeWidth="2" />}
+      {pose === 'win' && <circle cx="71" cy="119" r="7.5" fill={skin} stroke={line} strokeWidth="2" />}
+      <path d="M84 76 Q110 64 136 76 L143 132 Q110 143 77 132 Z" fill={theme.gi} stroke={line} strokeWidth="2" />
+      <path d="M97 69 L110 97 L123 69 L123 82 L110 106 L97 82 Z" fill={theme.giDark} />
+      <rect x="79" y="124" width="62" height="11" rx="4" fill={theme.accent} stroke={line} strokeWidth="1.5" />
+      <path d="M128 135 L138 152 L130 154 L122 137 Z" fill={theme.accent} />
+      <circle cx="110" cy="47" r="25" fill={skin} stroke={line} strokeWidth="2" />
+      <path d="M85 50 L77 25 L92 31 L94 12 L107 27 L115 8 L123 27 L135 16 L133 35 L141 31 L135 53 Q110 37 85 50 Z" fill={theme.hair} stroke={line} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M86 39 Q110 31 134 39 L134 47 Q110 39 86 47 Z" fill={theme.accent} />
+      <path d="M86 43 L72 51 L83 56 Z" fill={theme.accent} />
+      {ko ? <>
+        <path d="M98 47 L107 56 M107 47 L98 56" stroke="#1f2430" strokeWidth="2.6" strokeLinecap="round" />
+        <path d="M116 47 L125 56 M125 47 L116 56" stroke="#1f2430" strokeWidth="2.6" strokeLinecap="round" />
+        <path d="M106 64 Q113 60 120 64" fill="none" stroke="#1f2430" strokeWidth="2.2" strokeLinecap="round" />
+      </> : pose === 'win' ? <>
+        <path d="M98 52 Q103 47 108 52 M116 52 Q121 47 126 52" fill="none" stroke="#1f2430" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M105 59 Q113 67 121 59 Q113 63 105 59 Z" fill="#7c2d12" />
+      </> : pose === 'hit' ? <>
+        <ellipse cx="103" cy="51" rx="3.4" ry="5" fill="#1f2430" /><ellipse cx="122" cy="51" rx="3.4" ry="5" fill="#1f2430" />
+        <circle cx="113" cy="62" r="4" fill="#7c2d12" />
+      </> : <>
+        <ellipse cx="103" cy="52" rx="3" ry="4.4" fill="#1f2430" /><ellipse cx="122" cy="52" rx="3" ry="4.4" fill="#1f2430" />
+        <path d="M96 44 L108 47 M128 44 L116 47" stroke="#1f2430" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M107 61 Q113 64 119 61" fill="none" stroke="#1f2430" strokeWidth="2.2" strokeLinecap="round" />
+      </>}
+      {pose === 'idle' || ko ? <><path d="M134 84 L153 111 L143 119 L126 95 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="149" cy="115" r="7.5" fill={skin} stroke={line} strokeWidth="2" /></> : null}
+      {pose === 'hit' && <><path d="M134 82 L159 55 L167 63 L143 90 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="163" cy="59" r="7.5" fill={skin} stroke={line} strokeWidth="2" /></>}
+      {pose === 'charge' && <><path d="M133 83 L157 102 L149 114 L125 96 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="153" cy="108" r="7.5" fill={skin} stroke={line} strokeWidth="2" /><circle className="charge-orb" cx="163" cy="110" r="14" fill={theme.aura} opacity="0.85" /><circle cx="163" cy="110" r="6" fill="#ffffff" opacity="0.9" /></>}
+      {pose === 'attack' && <><path d="M133 79 L173 76 L175 88 L131 93 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="176" cy="82" r="7.5" fill={skin} stroke={line} strokeWidth="2" /><g className="fighter-beam"><rect x="180" y="70" width="38" height="24" rx="12" fill={theme.aura} opacity="0.85" /><rect x="182" y="77" width="34" height="10" rx="5" fill="#ffffff" opacity="0.85" /></g></>}
+      {pose === 'block' && <><path d="M136 79 L88 109 L95 121 L143 91 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><path d="M152 58 Q182 108 152 160 Q164 108 152 58 Z" fill={theme.accent} opacity="0.28" stroke={theme.aura} strokeWidth="2.5" /></>}
+      {pose === 'win' && <><path d="M134 81 L155 46 L165 53 L145 89 Z" fill={theme.gi} stroke={line} strokeWidth="2" /><circle cx="161" cy="50" r="8" fill={skin} stroke={line} strokeWidth="2" /><path d="M168 22 L171 30 L179 30 L173 35 L175 43 L168 38 L161 43 L163 35 L157 30 L165 30 Z" fill={theme.accent} /></>}
+    </g>
+  </svg>;
 }
-function AvatarBuilder({ current, onApply }: { current: string; onApply: (avatar: string) => void }) {
-  const initial = parseCustomAvatar(current) ?? { base: 0, armor: 0, helm: 1, weapon: 0, aura: 0 };
-  const [draft, setDraft] = useState<CustomAvatar>(initial);
-  const encoded = encodeCustomAvatar(draft);
-  const set = (patch: Partial<CustomAvatar>) => { setDraft((d) => ({ ...d, ...patch })); playSfx('click'); };
-  return <div className="avatar-builder">
-    <div className="builder-preview"><FighterAvatar seed={encoded} large /><strong>{fighterName(encoded)}</strong><small>Your custom fighter</small></div>
-    <div className="builder-controls">
-      <div><span>Base style</span><div className="builder-row">{baseStyles.map((label, i) => <button type="button" key={label} className={draft.base === i ? 'selected' : ''} onClick={() => set({ base: i })}>{label}</button>)}</div></div>
-      <div><span>Armor color</span><div className="builder-row swatches">{armorPalettes.map((c, i) => <button type="button" key={c.name} title={c.name} aria-label={`${c.name} armor`} className={`swatch ${draft.armor === i ? 'selected' : ''}`} style={{ background: c.hex }} onClick={() => set({ armor: i })} />)}</div></div>
-      <div><span>Helm</span><div className="builder-row">{helmKinds.map((label, i) => <button type="button" key={label} className={draft.helm === i ? 'selected' : ''} onClick={() => set({ helm: i })}>{label}</button>)}</div></div>
-      <div><span>Weapon</span><div className="builder-row">{weaponKinds.map((label, i) => <button type="button" key={label} className={draft.weapon === i ? 'selected' : ''} onClick={() => set({ weapon: i })}>{label}</button>)}</div></div>
-      <div><span>Aura</span><div className="builder-row swatches">{auraColors.map((hex, i) => <button type="button" key={hex} aria-label={`Aura ${i + 1}`} className={`swatch ${draft.aura === i ? 'selected' : ''}`} style={{ background: hex }} onClick={() => set({ aura: i })} />)}</div></div>
-      <div className="builder-row"><button type="button" className="builder-random" onClick={() => setDraft({ base: Math.floor(Math.random() * 2), armor: Math.floor(Math.random() * 12), helm: 1 + Math.floor(Math.random() * 5), weapon: Math.floor(Math.random() * 6), aura: Math.floor(Math.random() * 6) })}>🎲 Randomize</button><button type="button" className="builder-apply" onClick={() => onApply(encoded)}>Use custom fighter</button></div>
-    </div>
+
+function FighterThemePicker({ current, onApply }: { current: string; onApply: (avatar: string) => void }) {
+  const [draft, setDraft] = useState(isValidAvatar(current) ? current : playerAvatars[0]);
+  const randomize = () => { setDraft(playerAvatars[Math.floor(Math.random() * playerAvatars.length)]); playSfx('click'); };
+  return <div className="theme-picker">
+    <div className="builder-preview"><FighterAvatar seed={draft} large /><strong>{fighterName(draft)}</strong><small>One fighter — make it yours with color</small></div>
+    <div className="avatar-grid theme-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose ${fighterName(choice)}`} aria-pressed={draft === choice} className={draft === choice ? 'selected' : ''} key={choice} onClick={() => { setDraft(choice); playSfx('click'); }}><FighterAvatar seed={choice} /><span className="fighter-name">{fighterName(choice)}</span></button>)}</div>
+    <div className="builder-row theme-actions"><button type="button" className="builder-random" onClick={randomize}>🎲 Randomize</button><button type="button" className="builder-apply" onClick={() => onApply(draft)}>Use these colors</button></div>
   </div>;
 }
 
@@ -224,7 +212,7 @@ export function playSfx(kind: 'click' | 'charge' | 'beam' | 'impact' | 'explosio
 function PlayerAvatar({ player, large = false, hit = false }: { player?: PublicPlayer; large?: boolean; hit?: boolean }) {
   const hp = player?.hp ?? 3;
   return <span className={`player-avatar hp-${hp} ${large ? 'large' : ''} ${hit ? 'hit' : ''}`} aria-label={`${player?.name ?? 'Player'} avatar, ${hp} HP`}>
-    <FighterAvatar seed={player?.avatar ?? 'sprite-01'} large={large} pose={hp === 0 ? 'ko' : hit ? 'hit' : 'idle'} />
+    <FighterAvatar seed={player?.avatar ?? 'arena-01'} large={large} pose={hp === 0 ? 'ko' : hit ? 'hit' : 'idle'} />
     {hp < 3 && <i aria-hidden="true">{hp === 0 ? '✕' : '⚡'}</i>}
   </span>;
 }
@@ -241,7 +229,7 @@ function FighterSprite({ player, side, state }: { player?: PublicPlayer; side: '
   const pose: SpritePose = (player?.hp ?? 1) <= 0 ? 'ko' : state === 'attacking' ? 'attack' : state === 'hit' ? 'hit' : state === 'charging' ? 'charge' : 'idle';
   return <div className={`fighter ${side} ${state}`}>
     <div className="fighter-aura" aria-hidden="true"><i /><i /><i /></div>
-    <div className="fighter-body" aria-hidden="true"><FighterAvatar seed={player?.avatar ?? 'sprite-01'} large pose={pose} /></div>
+    <div className="fighter-body" aria-hidden="true"><FighterAvatar seed={player?.avatar ?? 'arena-01'} large pose={pose} /></div>
     <div className="fighter-shadow" aria-hidden="true" />
     <div className="fighter-plate"><small>{side === 'left' ? 'YOU' : 'RIVAL'}</small><b>{player?.name ?? 'Unknown'}</b><strong>{hpDisplay(player?.hp ?? 0)}</strong></div>
   </div>;
@@ -823,7 +811,7 @@ export function App() {
   const [avatar, setAvatar] = useState(() => {
     const saved = localStorage.getItem('zerosum-avatar');
     if (saved && isValidAvatar(saved)) return saved;
-    return encodeCustomAvatar({ base: Math.floor(Math.random() * 2), armor: Math.floor(Math.random() * 12), helm: 1 + Math.floor(Math.random() * 5), weapon: Math.floor(Math.random() * 6), aura: Math.floor(Math.random() * 6) });
+    return playerAvatars[Math.floor(Math.random() * playerAvatars.length)];
   });
   const [code, setCode] = useState(initialUrlCode);
   const [hostToken, setHostToken] = useState(canResumeHost ? savedHostToken : '');
@@ -1423,7 +1411,7 @@ export function App() {
         <div className="avatar-choice"><span className="avatar-preview" aria-label="Selected fighter"><FighterAvatar seed={avatar} /></span><div><strong>Your fighter</strong><small>Pick your battle character</small></div><button type="button" onClick={() => setAvatarPickerOpen(true)}>Choose fighter</button></div>
         <label>Game code<input className="code-input" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="ABC123" /></label>
         <button className="action" disabled={!connected}>Enter arena</button>
-        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your avatar" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Avatar gallery</h2></div><button type="button" aria-label="Close avatar gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><AvatarBuilder current={avatar} onApply={(v) => { setAvatar(v); setAvatarPickerOpen(false); playSfx('click'); }} /><div className="builder-divider">or pick a preset fighter</div><div className="avatar-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose fighter ${choice}`} aria-pressed={avatar === choice} className={avatar === choice ? 'selected' : ''} key={choice} onClick={() => { setAvatar(choice); setAvatarPickerOpen(false); playSfx('click'); }}><FighterAvatar seed={choice} /><span className="fighter-name">{fighterName(choice)}</span></button>)}</div></section></div>}
+        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your avatar" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Choose your colors</h2></div><button type="button" aria-label="Close avatar gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><FighterThemePicker current={avatar} onApply={(v) => { setAvatar(v); setAvatarPickerOpen(false); playSfx('click'); }} /></section></div>}
       </form>}
       {mode === 'solo' && <div className="panel entry-form">
         <button type="button" className="back" onClick={() => setMode('choose')}>← Back</button>
@@ -1431,7 +1419,7 @@ export function App() {
         <p className="muted">Duel bot rivals one at a time. Win to climb, lose and the streak ends. HP resets every duel.</p>
         <label>Fighter handle<input autoFocus maxLength={24} value={name} onChange={(event) => setName(event.target.value)} placeholder="Cloud champion" /></label>
         <div className="avatar-choice"><span className="avatar-preview" aria-label="Selected fighter"><FighterAvatar seed={avatar} /></span><div><strong>Your fighter</strong><small>Pick your battle character</small></div><button type="button" onClick={() => setAvatarPickerOpen(true)}>Choose fighter</button></div>
-        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your fighter" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Fighter gallery</h2></div><button type="button" aria-label="Close fighter gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><AvatarBuilder current={avatar} onApply={(v) => { setAvatar(v); setAvatarPickerOpen(false); playSfx('click'); }} /><div className="builder-divider">or pick a preset fighter</div><div className="avatar-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose fighter ${choice}`} aria-pressed={avatar === choice} className={avatar === choice ? 'selected' : ''} key={choice} onClick={() => { setAvatar(choice); setAvatarPickerOpen(false); playSfx('click'); }}><FighterAvatar seed={choice} /><span className="fighter-name">{fighterName(choice)}</span></button>)}</div></section></div>}
+        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your fighter" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Choose your colors</h2></div><button type="button" aria-label="Close fighter gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><FighterThemePicker current={avatar} onApply={(v) => { setAvatar(v); setAvatarPickerOpen(false); playSfx('click'); }} /></section></div>}
         <p className="muted">When your run ends, your result joins the Solo Leaderboard as <b>{name || 'Your name'} #SESSION</b>.</p>
         <label>Challenge pack<select value={selectedBankId} onChange={(event) => setSelectedBankId(event.target.value)}>{banks.map((bank) => <option key={bank.id} value={bank.id}>{bank.isSample ? 'Included · ' : ''}{bank.name}</option>)}</select>{!banks.length && <small>Sign-in/beta access loads the included packs.</small>}</label>
         <label>Ladder length<select value={ladderLength} onChange={(event) => setLadderLength(Number(event.target.value))}>{[5, 10, 25, 50].map((value) => <option key={value} value={value}>{value} rivals</option>)}</select></label>
