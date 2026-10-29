@@ -1590,9 +1590,9 @@ export function App() {
         <AccountBadge account={account} publicBeta={publicBeta} authenticated={authenticated} onSignIn={() => setMode('login')} onHost={account && mode !== 'host' ? () => setMode('host') : undefined} onSignOut={authenticated ? signOut : undefined} />
       </header>
       <section className="hero">
-        <div className="eyebrow">LAST PLAYER STANDING</div>
-        <h1>Bring the challenge.<br/><em>Outlast everyone.</em></h1>
-        <p>Live elimination battles powered by your own questions. Accuracy keeps you alive—and speed wins the round.</p>
+        <div className="eyebrow">LEARNING, MADE FUN</div>
+        <h1>Learn it. Play it.<br/><em>Outlast everyone.</em></h1>
+        <p>ZeroSum Arena turns quizzes into live battle games. Answer correctly to charge up and strike — built for classroom reviews, practice exams, and learning while you play. Accuracy keeps you alive, and speed wins the round.</p>
         <div className="feature-chips"><span>⚡ Live duels</span><span>♥ 3 HP</span><span>🏆 One champion</span></div>
       </section>
       {mode === 'choose' && <div className="choice-grid">

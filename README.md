@@ -1,6 +1,8 @@
-# Zerosum
+# ZeroSum Arena — Learning, Made Fun
 
-Zerosum is a live, last-player-standing tournament game. A host selects a challenge pack, players join with a six-character code, and each player tries to protect their three HP until only one champion remains.
+**ZeroSum Arena makes learning fun for quizzes.** It turns any quiz or question pack into a live, Dragon Ball-inspired battle game: students answer questions to charge up, unleash energy skills, and damage their rival — so reviewing for a class or practicing for an exam feels like playing a fighting game, not taking a test.
+
+A teacher (or any host) selects a challenge pack, players join with a six-character code, and each player tries to protect their three HP until only one champion remains. Students at home can also play solo against bots to practice on their own, build a win streak, and climb the leaderboard.
 
 The current beta runs as a Dockerized monolith on one Amazon Linux EC2 instance:
 
@@ -23,7 +25,7 @@ Browser -> Nginx -> Node.js + React -> SQLite
 
 - **Dragon Ball-inspired battle stage (original CSS art):** fighters idle with flickering auras, charge while an answer is locked, and fire an energy skill — Scholar Beam, Mind Cannon, Exam Flash — at the rival when damage resolves; clashes and blocks are animated too.
 - **Host can play:** the host may join their own tournament as a fighter. Rounds then auto-run (8-second break countdown) and answer keys stay hidden from the playing host.
-- **Solo Arcade:** a no-account, Tekken-style 1v1 ladder against seeded bot rivals (Rookie → Champion tiers that get faster and more accurate, with a boss every 5th rival). Ladder length 5–50, HP resets each duel, win streak and best streak are kept on the device under a handle + 8-digit codename.
+- **Solo Arcade:** a no-account, Tekken-style 1v1 ladder against seeded bot rivals (Rookie → Champion tiers that get faster and more accurate, with a boss every 5th rival). Ladder length 5–50, HP resets each duel, win streaks earn a place on the server-wide Top 5 leaderboard (streaks of 2+ only, tagged with the run session code).
 - **Learn / Exam feedback:** Learn mode shows the explanation after each question; Exam mode withholds answers until the run ends, then gives a full review.
 - **Challenge Queue:** streak players who tick "Allow challenges" can be challenged — a queued student with the same pack takes the next rival slot at a duel boundary. Win and their streak ends; you can start your own.
 - Local development and the phased rollout (local → Docker → LAN pilot → EC2 staging → production) are documented in [DEPLOYMENT.md](DEPLOYMENT.md); run locally with `scripts/run-local.ps1` or `docker compose -f compose.local.yaml up --build`.

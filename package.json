@@ -1,6 +1,7 @@
 {
   "name": "zerosum",
   "private": true,
+  "description": "ZeroSum Arena makes learning fun for quizzes - a Dragon Ball-inspired battle game for classroom tournaments and solo practice.",
   "version": "1.0.0",
   "workspaces": [
     "app",
