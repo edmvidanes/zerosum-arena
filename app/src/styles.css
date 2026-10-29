@@ -392,3 +392,14 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .streak-panel .fighter-sprite { width: 58px; height: 48px; }
 @media (max-width: 700px) { .fighter-body { width: 104px; height: 86px; } .fighter-body .fighter-sprite { width: 104px; height: 86px; } .hero-fighters .fighter-sprite { width: 82px; height: 67px; } .avatar-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .fighter-sprite.pose-idle { animation: none; } }
+
+/* ---- Round 3 fixes: facing, host icon, forfeit, hero cleanup ---- */
+.hero-fighters { display: none !important; }
+.choice-icon { width: 56px; height: 56px; display: grid; place-items: center; border: 1.5px solid #ffb45e88; border-radius: 16px; background: radial-gradient(circle at 35% 25%, #ffd23e33, transparent 55%), linear-gradient(145deg, #3b2614, #160f08); color: #ffc44d; box-shadow: 0 0 18px #ff9d3a33, inset 0 0 12px #ffd23e22; }
+.choice-icon svg { width: 36px; height: 36px; filter: drop-shadow(0 2px 6px #000a); }
+.choice:hover .choice-icon { color: #ffd23e; box-shadow: 0 0 24px #ff9d3a55, inset 0 0 14px #ffd23e33; }
+.fighter.right .fighter-body { transform: none !important; }
+.fighter-body .fighter-sprite { transform: scale(1.38); }
+.fighter.right .fighter-body .fighter-sprite { transform: scaleX(-1) scale(1.38); }
+.forfeit-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin: 10px auto 0; max-width: 760px; padding: 10px 14px; border: 1px dashed #ff8a7a55; border-radius: 12px; background: #2a0f0c66; color: #f0c9c2; font-size: 12.5px; text-align: center; }
+.forfeit-row .danger-link { margin: 0 auto; }

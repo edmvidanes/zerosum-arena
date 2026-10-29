@@ -126,5 +126,18 @@ test('host can join as a player and gets the fair player view', () => {
   } finally { cleanup(ctx); }
 });
 
-
-
+test('forfeiting a solo run ends it, records the streak, and frees the player', () => {
+  const ctx = setup();
+  try {
+    const socket = new FakeSocket();
+    ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', avatar: 'sprite-02', bankId: 'bank-test', ladderLength: 5, feedbackMode: 'LEARN', allowChallenge: false });
+    const created = socket.messages.find((message) => message.type === 'soloCreated');
+    ctx.game.forfeitSoloRun(socket, { code: created.code, playerId: HUMAN });
+    assert.equal(ctx.game.tournament(created.code).phase, 'COMPLETE');
+    const row = ctx.db.prepare('SELECT * FROM solo_leaderboard WHERE code=?').get(created.code);
+    assert.equal(row.result, 'FORFEIT');
+    assert.equal(row.streak, 0);
+    const snap = ctx.game.snapshot(created.code, HUMAN);
+    assert.equal(snap.tournament.phase, 'COMPLETE');
+  } finally { cleanup(ctx); }
+});

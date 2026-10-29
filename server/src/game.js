@@ -477,6 +477,26 @@ export class ZerosumGame {
     this.broadcast(code);
   }
 
+
+  forfeitSoloRun(ws, message) {
+    const code = this.cleanCode(message.code);
+    const playerId = String(message.playerId ?? '');
+    const tournament = this.tournament(code);
+    if (!tournament || tournament.mode !== 'SOLO') throw new Error('Only a Solo Arcade run can be forfeited.');
+    if (ws.session?.role !== 'PLAYER' || ws.session?.playerId !== playerId || tournament.solo_player_id !== playerId) throw new Error('You can only forfeit your own Solo Arcade run.');
+    if (tournament.phase === 'COMPLETE' || tournament.phase === 'CANCELLED') return this.send(ws, this.snapshot(code, playerId));
+    for (const [key, timer] of [...this.deadlineTimers.entries()]) if (key.startsWith(`${code}:`)) { clearTimeout(timer); this.deadlineTimers.delete(key); }
+    for (const [key, timer] of [...this.botTimers.entries()]) if (key.startsWith(`${code}:`)) { clearTimeout(timer); this.botTimers.delete(key); }
+    this.db.transaction(() => {
+      this.db.prepare(`UPDATE matches SET phase='COMPLETE' WHERE code=? AND phase<>'COMPLETE'`).run(code);
+      this.db.prepare(`UPDATE players SET status='ELIMINATED' WHERE code=? AND id=?`).run(code, playerId);
+      this.db.prepare(`UPDATE tournaments SET phase='COMPLETE', updated_at=? WHERE code=?`).run(Date.now(), code);
+    })();
+    this.recordSoloResult(code, 'FORFEIT');
+    this.recordEvent(code, 'SOLO_FORFEIT', `${this.player(code, playerId)?.name ?? 'Player'} forfeited the run at streak ${tournament.streak ?? 0}.`, { playerId, streak: tournament.streak ?? 0 });
+    this.broadcast(code);
+  }
+
   createSoloRun(ws, message) {
     if (process.env.ENABLE_SOLO_BOTS === 'false') throw new Error('Solo Arcade is not enabled on this server.');
     const playerId = String(message.playerId ?? '');
@@ -852,6 +872,7 @@ export class ZerosumGame {
     switch (message.action) {
       case 'createTournament': return this.createTournament(ws, { flawlessBonus: message.flawlessBonus, questionSeconds: message.questionSeconds, arenaTone: message.arenaTone, bankId: message.bankId, hostPlay: message.hostPlay, hostName: message.hostName, hostAvatar: message.hostAvatar, hostPlayerId: message.hostPlayerId });
       case 'createSoloRun': return this.createSoloRun(ws, message);
+      case 'forfeitSoloRun': return this.forfeitSoloRun(ws, message);
       case 'joinChallengeQueue': return this.joinChallengeQueue(ws, message);
       case 'leaveChallengeQueue': return this.leaveChallengeQueue(ws, message);
       case 'challengeStatus': return this.challengeStatus(ws, message);
