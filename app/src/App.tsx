@@ -179,9 +179,17 @@ function sfxNoiseBurst(seconds: number, volume: number, filterFreq: number, dela
   src.connect(filter).connect(gain).connect(context.destination); src.start(at); src.stop(at + seconds + 0.05);
 }
 export function stopChargeSfx() {
-  if (!chargeNodes || !sfxContext) return;
-  try { chargeNodes.gain.gain.exponentialRampToValueAtTime(0.0001, sfxContext.currentTime + 0.12); chargeNodes.osc.stop(sfxContext.currentTime + 0.15); } catch { /* already stopped */ }
+  if (!chargeNodes || !sfxContext) { chargeNodes = null; return; }
+  const nodes = chargeNodes;
   chargeNodes = null;
+  try {
+    const now = sfxContext.currentTime;
+    nodes.gain.gain.cancelScheduledValues(now);
+    nodes.gain.gain.setValueAtTime(Math.max(nodes.gain.gain.value, 0.0001), now);
+    nodes.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+    nodes.osc.stop(now + 0.1);
+    window.setTimeout(() => { try { nodes.osc.disconnect(); nodes.gain.disconnect(); } catch { /* already gone */ } }, 200);
+  } catch { /* already stopped */ }
 }
 export function playSfx(kind: 'click' | 'charge' | 'beam' | 'impact' | 'explosion' | 'shield' | 'clash' | 'win' | 'lose' | 'beep') {
   if (!sfxOn()) return;
@@ -197,6 +205,12 @@ export function playSfx(kind: 'click' | 'charge' | 'beam' | 'impact' | 'explosio
       gain.gain.setValueAtTime(0.045, context.currentTime);
       osc.connect(gain).connect(context.destination); osc.start();
       chargeNodes = { osc, gain };
+      // Safety: a charge must never outlive the round. Self-stop after 3.5s
+      // even if combat feedback / game-end cleanup never fires.
+      gain.gain.setValueAtTime(0.045, context.currentTime + 3.1);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 3.45);
+      osc.stop(context.currentTime + 3.5);
+      osc.onended = () => { if (chargeNodes?.osc === osc) chargeNodes = null; };
       sfxTone(220, 990, 0.4, 'sawtooth', 0.05);
     }
     if (kind === 'beam') { sfxTone(1400, 160, 0.5, 'sawtooth', 0.16); sfxNoiseBurst(0.45, 0.12, 3200); }
@@ -254,6 +268,7 @@ function BattleStage({ me, opponents, combat, charging, gameMode }: {
     const timer = window.setTimeout(() => setFx((current) => current?.key === combat.key ? undefined : current), 1750);
     return () => window.clearTimeout(timer);
   }, [combat?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => stopChargeSfx(), []);
 
   const myState = fx?.kind === 'attack' ? 'attacking' : fx?.kind === 'hit' || fx?.kind === 'clash' ? 'hit' : charging ? 'charging' : 'idle';
   const rivalState = fx?.kind === 'attack' || fx?.kind === 'clash' ? 'hit' : fx?.kind === 'hit' ? 'attacking' : 'idle';
@@ -806,6 +821,7 @@ export function App() {
   const [mode, setMode] = useState<LandingMode>(initialUrlCode && !canResumeHost ? 'join' : 'choose');
   const [connected, setConnected] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot>();
+  useEffect(() => { if (!snapshot || snapshot.tournament.phase === 'COMPLETE' || snapshot.tournament.phase === 'CANCELLED') stopChargeSfx(); }, [snapshot?.tournament.phase, Boolean(snapshot)]);
   const [error, setError] = useState('');
   const [name, setName] = useState(localStorage.getItem('zerosum-name') ?? '');
   const [avatar, setAvatar] = useState(() => {
@@ -1389,8 +1405,8 @@ export function App() {
         <button className="choice" onClick={() => setMode('challenge')}><span>⚔</span><b>Challenge a streak</b><small>Queue up and take the next rival slot</small></button>
       </div>}
       {mode === 'choose' && <section className="streak-panel"><FighterAvatar seed={avatar} /><span>👤 {name || 'Guest fighter'}</span><strong>Finish a Solo Arcade run and your name lands on the leaderboard below — tagged with your session code.</strong></section>}
-      {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">SOLO LEADERBOARD</div><h2>Top streaks</h2></div><span>Updated live</span></div>{soloLeaderboard.length ? <ol className="leaderboard-list">{soloLeaderboard.slice(0, 10).map((entry, index) => <li key={entry.code}><b>#{index + 1}</b><FighterAvatar seed={entry.avatar} /><span className="board-name">{entry.name} <small>#{entry.code}</small></span><span className="board-bank">{entry.bankName}</span><strong>🔥 {entry.streak}</strong><em>{entry.result === 'LADDER_CLEARED' ? '👑 Cleared' : entry.result === 'CHALLENGED' ? '⚔ Challenged' : entry.result === 'FORFEIT' ? '🏳 Forfeited' : '💥 Ended'}</em></li>)}</ol> : <p className="muted">No finished streaks yet — be the first name on this board.</p>}</section>}
       {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">LIVE · OPEN TO CHALLENGERS</div><h2>Streaks you can challenge right now</h2></div><span>{openChallenges.length} live</span></div>{openChallenges.length ? <div className="open-list">{openChallenges.map((open) => <article key={open.code}><FighterAvatar seed={open.playerAvatar} /><div><b>{open.playerName} <small>#{open.code}</small></b><span>🎒 {open.bankName} · 🔥 streak {open.streak} · rival {open.rivalIndex}/{open.ladderLength}</span></div><button type="button" onClick={() => { setSelectedBankId(open.bankId); setMode('challenge'); playSfx('click'); }}>Challenge ⚔</button></article>)}</div> : <p className="muted">No streak is open to challengers at the moment. Start a Solo Arcade run with “Allow challenges” to appear here.</p>}</section>}
+      {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">SOLO LEADERBOARD</div><h2>Top streaks</h2></div><span>Updated live</span></div>{soloLeaderboard.length ? <ol className="leaderboard-list">{soloLeaderboard.slice(0, 5).map((entry, index) => <li key={entry.code}><b>#{index + 1}</b><FighterAvatar seed={entry.avatar} /><span className="board-name">{entry.name} <small>#{entry.code}</small></span><span className="board-bank">{entry.bankName}</span><strong>🔥 {entry.streak}</strong><em>{entry.result === 'LADDER_CLEARED' ? '👑 Cleared' : entry.result === 'CHALLENGED' ? '⚔ Challenged' : entry.result === 'FORFEIT' ? '🏳 Forfeited' : '💥 Ended'}</em></li>)}</ol> : <p className="muted">No finished streaks yet — be the first name on this board.</p>}</section>}
       {mode === 'choose' && <section className="rules-card">
         <div className="rules-heading"><div><div className="eyebrow">BATTLE BRIEFING</div><h2>How to play</h2></div><span>Accuracy first. Speed breaks the tie.</span></div>
         <div className="rule-steps">
@@ -1560,7 +1576,7 @@ export function App() {
     <h1>{snapshot.tournament.championId === me?.id ? (snapshot.me?.isBot || !me ? 'Run complete' : snapshot.tournament.streak >= snapshot.tournament.ladderLength ? 'Ladder cleared!' : 'You ended the streak!') : 'Your streak was ended'}</h1>
     <p className="solo-streak-big">🔥 {snapshot.tournament.streak} <small>win streak</small></p>
     <p className="muted">Leaderboard entry: <b>{me?.name} #{snapshot.tournament.code}</b> · {snapshot.tournament.bankName}</p>
-    {soloLeaderboard.length ? <ol className="leaderboard-list result-board">{soloLeaderboard.slice(0, 10).map((entry, index) => <li key={entry.code} className={entry.code === snapshot.tournament.code ? 'mine' : ''}><b>#{index + 1}</b><FighterAvatar seed={entry.avatar} /><span className="board-name">{entry.name} <small>#{entry.code}</small></span><strong>🔥 {entry.streak}</strong></li>)}</ol> : null}
+    {soloLeaderboard.length ? <ol className="leaderboard-list result-board">{soloLeaderboard.slice(0, 5).map((entry, index) => <li key={entry.code} className={entry.code === snapshot.tournament.code ? 'mine' : ''}><b>#{index + 1}</b><FighterAvatar seed={entry.avatar} /><span className="board-name">{entry.name} <small>#{entry.code}</small></span><strong>🔥 {entry.streak}</strong></li>)}</ol> : null}
     {snapshot.reviewQuestions?.length ? <section className="solo-review"><h2>Run review</h2><QuestionReview questions={snapshot.reviewQuestions} matches={snapshot.matchHistory ?? []} gameMode={snapshot.tournament.gameMode} /></section> : null}
     <div className="reset-actions"><button className="action" onClick={() => { setSnapshot(undefined); setMode('solo'); }}>Run it back</button><button className="secondary-action" onClick={returnHome}>Return home</button></div>
   </main>);
