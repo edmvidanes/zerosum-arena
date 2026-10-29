@@ -161,7 +161,7 @@ const server = http.createServer(async (request, response) => {
     canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks,
   });
   if (request.method === 'GET' && url.pathname === '/api/solo/leaderboard') {
-    const entries = db.prepare('SELECT code, name, avatar, bank_name AS bankName, streak, ladder_length AS ladderLength, result, ended_at AS endedAt FROM solo_leaderboard WHERE streak >= 2 AND result != 'FORFEIT' ORDER BY streak DESC, ended_at DESC LIMIT 5').all();
+    const entries = db.prepare('SELECT code, name, avatar, bank_name AS bankName, streak, ladder_length AS ladderLength, result, ended_at AS endedAt FROM solo_leaderboard WHERE streak >= 2 AND result != \'FORFEIT\' ORDER BY streak DESC, ended_at DESC LIMIT 5').all();
     return sendJson(response, 200, { entries });
   }
   if (request.method === 'GET' && url.pathname === '/api/solo/open') {
