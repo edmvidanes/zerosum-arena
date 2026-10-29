@@ -1,0 +1,18 @@
+{
+  "name": "Starter Mix",
+  "description": "A light general-knowledge pack for testing Zerosum.",
+  "questions": [
+    { "prompt": "The Pacific Ocean is larger than the Atlantic Ocean.", "options": ["True", "False"], "correctIndex": 0, "explanation": "The Pacific is the world's largest ocean." },
+    { "prompt": "Which planet is known as the Red Planet?", "options": ["Venus", "Mars", "Jupiter", "Mercury"], "correctIndex": 1, "explanation": "Iron minerals give Mars its reddish appearance." },
+    { "prompt": "What is the chemical symbol for gold?", "options": ["Ag", "Au", "Gd", "Go"], "correctIndex": 1, "explanation": "Gold uses the symbol Au." },
+    { "prompt": "Water freezes at 0 degrees Celsius at standard pressure.", "options": ["True", "False"], "correctIndex": 0, "explanation": "Zero degrees Celsius is water's standard freezing point." },
+    { "prompt": "Which animal is the largest living mammal?", "options": ["African elephant", "Blue whale", "Giraffe", "Whale shark"], "correctIndex": 1, "explanation": "The blue whale is the largest known living animal." },
+    { "prompt": "How many sides does a hexagon have?", "options": ["Five", "Six", "Seven", "Eight"], "correctIndex": 1, "explanation": "A hexagon has six sides." },
+    { "prompt": "Sound travels faster than light.", "options": ["True", "False"], "correctIndex": 1, "explanation": "Light travels far faster than sound." },
+    { "prompt": "Which country uses the yen as its currency?", "options": ["China", "South Korea", "Japan", "Thailand"], "correctIndex": 2, "explanation": "The yen is the currency of Japan." },
+    { "prompt": "What is 12 multiplied by 8?", "options": ["86", "92", "96", "108"], "correctIndex": 2, "explanation": "12 × 8 equals 96." },
+    { "prompt": "A triangle can have two right angles.", "options": ["True", "False"], "correctIndex": 1, "explanation": "In Euclidean geometry, the angles of a triangle total 180 degrees." },
+    { "prompt": "Which instrument normally has 88 keys?", "options": ["Violin", "Piano", "Flute", "Trumpet"], "correctIndex": 1, "explanation": "A standard modern piano has 88 keys." },
+    { "prompt": "What is the capital of the Philippines?", "options": ["Cebu", "Davao", "Manila", "Baguio"], "correctIndex": 2, "explanation": "Manila is the capital of the Philippines." }
+  ]
+}

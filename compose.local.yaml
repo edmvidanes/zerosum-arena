@@ -1,0 +1,19 @@
+name: zerosum-local
+services:
+  app:
+    build:
+      context: .
+    image: zerosum-app:local
+    restart: "no"
+    env_file:
+      - .env.local
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DATA_DIR: /data
+    ports:
+      - "8080:3000"
+    volumes:
+      - zerosum_local_data:/data
+volumes:
+  zerosum_local_data:

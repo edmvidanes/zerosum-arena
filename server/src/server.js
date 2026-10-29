@@ -1,0 +1,326 @@
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { WebSocket, WebSocketServer } from 'ws';
+import { openDatabase } from './database.js';
+import { ZerosumGame } from './game.js';
+import { log } from './logger.js';
+import { accountFromCookie, clearSessionCookie, ensureSeedAccounts, limitsFor, login, logout, publicAccount, sessionCookie } from './auth.js';
+import { createBank, ensureSampleBanks, getBank, listBanks, parseBankUpload } from './banks.js';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(here, '../..');
+const publicDir = path.resolve(process.env.PUBLIC_DIR ?? path.join(projectRoot, 'app/dist'));
+const dataDir = path.resolve(process.env.DATA_DIR ?? path.join(projectRoot, '.data'));
+const starterBankPath = path.resolve(process.env.STARTER_BANK ?? path.join(projectRoot, 'data/starter-bank.json'));
+const awsSampleBankPath = path.resolve(process.env.AWS_SAMPLE_BANK ?? path.join(projectRoot, 'data/aws-cloud-practitioner-bank.json'));
+const rpsSampleBankPath = path.resolve(process.env.RPS_SAMPLE_BANK ?? path.join(projectRoot, 'data/bato-bato-pick-bank.json'));
+const informationSecuritySampleBankPath = path.resolve(process.env.INFORMATION_SECURITY_SAMPLE_BANK ?? path.join(projectRoot, 'data/information-security-foundations-bank.json'));
+const securityAwarenessSampleBankPath = path.resolve(process.env.SECURITY_AWARENESS_SAMPLE_BANK ?? path.join(projectRoot, 'data/information-security-awareness-bank.json'));
+const port = Number(process.env.PORT ?? 3000);
+const host = process.env.HOST ?? '127.0.0.1';
+
+const db = openDatabase(dataDir);
+ensureSeedAccounts(db);
+const publicBetaMode = String(process.env.PUBLIC_BETA_MODE ?? '').toLowerCase() === 'true';
+const betaAccount = publicBetaMode
+  ? db.prepare(`SELECT * FROM accounts WHERE plan='PAID' ORDER BY created_at LIMIT 1`).get()
+  : undefined;
+if (publicBetaMode && !betaAccount) throw new Error('PUBLIC_BETA_MODE requires a seeded PAID account.');
+const requestIdentity = (cookieHeader = '') => {
+  const authenticatedAccount = accountFromCookie(db, cookieHeader);
+  return {
+    account: authenticatedAccount ?? (publicBetaMode ? betaAccount : undefined),
+    authenticated: Boolean(authenticatedAccount),
+    canViewAnswers: Boolean(authenticatedAccount?.plan === 'PAID'),
+    canManagePacks: Boolean(authenticatedAccount && (!publicBetaMode || authenticatedAccount.plan === 'PAID')),
+  };
+};
+const browserAccount = (account, authenticated = false) => {
+  const safe = publicAccount(account);
+  return publicBetaMode && safe && !authenticated ? { ...safe, email: 'beta@zerosum.local', displayName: 'Beta Host' } : safe;
+};
+const awsSampleBank = JSON.parse(fs.readFileSync(awsSampleBankPath, 'utf8'));
+ensureSampleBanks(db, [
+  JSON.parse(fs.readFileSync(starterBankPath, 'utf8')),
+  JSON.parse(fs.readFileSync(rpsSampleBankPath, 'utf8')),
+  JSON.parse(fs.readFileSync(informationSecuritySampleBankPath, 'utf8')),
+  JSON.parse(fs.readFileSync(securityAwarenessSampleBankPath, 'utf8')),
+  { ...awsSampleBank, name: 'AWS Cloud Practitioner Practice' },
+]);
+const game = new ZerosumGame(db, {
+  hideHostQuestions: publicBetaMode,
+  maxActiveTournaments: publicBetaMode ? Number(process.env.PUBLIC_BETA_MAX_ACTIVE_TOURNAMENTS ?? 25) : undefined,
+});
+const loginAttempts = new Map();
+const tournamentCreationAttempts = new Map();
+const clientAddress = (request) => String(request.headers['x-real-ip'] ?? request.socket.remoteAddress ?? '').trim();
+
+function allowAttempt(store, key, maximum, windowMs) {
+  const now = Date.now();
+  const attempt = store.get(key);
+  if (!attempt || now > attempt.resetAt) {
+    store.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (attempt.count >= maximum) return false;
+  attempt.count += 1;
+  return true;
+}
+
+const limiterCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const store of [loginAttempts, tournamentCreationAttempts]) {
+    for (const [key, value] of store) if (value.resetAt <= now) store.delete(key);
+  }
+}, 15 * 60 * 1000).unref();
+
+function requireTournamentCreationAllowance(request) {
+  if (!publicBetaMode) return;
+  if (!allowAttempt(tournamentCreationAttempts, clientAddress(request), 10, 20 * 60 * 1000)) {
+    throw new Error('Too many tournaments were created from this network. Try again later.');
+  }
+}
+
+const contentTypes = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2', '.webp': 'image/webp',
+};
+
+function securityHeaders(response) {
+  response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('X-Frame-Options', 'DENY');
+  response.setHeader('Referrer-Policy', 'same-origin');
+  response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  response.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data:");
+}
+
+function sendJson(response, status, body, headers = {}) {
+  response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
+  response.end(JSON.stringify(body));
+}
+
+function readJson(request, maximum = 16 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    request.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > maximum) {
+        reject(new Error('Request is too large.'));
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on('end', () => {
+      try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); }
+      catch { reject(new Error('Invalid JSON request.')); }
+    });
+    request.on('error', reject);
+  });
+}
+
+function httpSocket(account, canViewAnswers = false, restrictToSampleBanks = false) {
+  return {
+    account, canViewAnswers, restrictToSampleBanks,
+    readyState: WebSocket.OPEN,
+    messages: [],
+    send(value) { this.messages.push(JSON.parse(value)); },
+    close() { this.readyState = WebSocket.CLOSED; },
+  };
+}
+
+const server = http.createServer(async (request, response) => {
+  securityHeaders(response);
+  const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
+  const forwarded = request.headers['x-forwarded-proto'];
+  const secure = forwarded === 'https';
+  const identity = requestIdentity(request.headers.cookie);
+  const { account } = identity;
+  if (request.method === 'POST' && request.headers.origin) {
+    try {
+      if (new URL(request.headers.origin).host !== request.headers.host) return sendJson(response, 403, { error: 'Cross-origin request rejected.' });
+    } catch { return sendJson(response, 403, { error: 'Invalid request origin.' }); }
+  }
+  if (request.method === 'GET' && url.pathname === '/api/config') {
+    return sendJson(response, 200, { websocketUrl: `${secure ? 'wss' : 'ws'}://${request.headers.host}/ws`, publicBeta: publicBetaMode });
+  }
+  if (request.method === 'GET' && url.pathname === '/api/health') {
+    const activeTournaments = db.prepare(`SELECT COUNT(*) AS count FROM tournaments WHERE phase NOT IN ('COMPLETE', 'CANCELLED')`).get().count;
+    return sendJson(response, 200, {
+      status: 'ok', service: 'zerosum', activeTournaments,
+      websocketClients: sockets.clients.size, uptimeSeconds: Math.floor(process.uptime()),
+    });
+  }
+  if (request.method === 'GET' && url.pathname === '/api/me') return sendJson(response, 200, {
+    account: browserAccount(account, identity.authenticated) ?? null,
+    publicBeta: publicBetaMode, authenticated: identity.authenticated,
+    canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks,
+  });
+  if (request.method === 'GET' && url.pathname === '/api/banks') {
+    if (!account) return sendJson(response, 401, { error: 'Sign in to manage challenge packs.' });
+    const banks = listBanks(db, account.id);
+    return sendJson(response, 200, {
+      banks: publicBetaMode && !identity.authenticated ? banks.filter((bank) => Boolean(bank.isSample)) : banks,
+      limits: limitsFor(account.plan),
+    });
+  }
+  if (request.method === 'GET' && url.pathname.startsWith('/api/banks/')) {
+    if (!account) return sendJson(response, 401, { error: 'Sign in to view challenge packs.' });
+    if (publicBetaMode && !identity.canViewAnswers) return sendJson(response, 403, { error: 'Question previews require a signed-in paid host during public beta.' });
+    try { return sendJson(response, 200, { bank: getBank(db, account.id, url.pathname.split('/').pop()) }); }
+    catch (error) { return sendJson(response, 404, { error: error.message }); }
+  }
+  if (request.method === 'POST' && url.pathname === '/api/auth/login') {
+    const remote = clientAddress(request);
+    const attempt = loginAttempts.get(remote) ?? { count: 0, resetAt: Date.now() + 15 * 60 * 1000 };
+    if (Date.now() > attempt.resetAt) Object.assign(attempt, { count: 0, resetAt: Date.now() + 15 * 60 * 1000 });
+    if (attempt.count >= 10) return sendJson(response, 429, { error: 'Too many sign-in attempts. Try again later.' });
+    try {
+      const body = await readJson(request);
+      const result = login(db, body.email, body.password);
+      loginAttempts.delete(remote);
+      return sendJson(response, 200, {
+        account: result.account, authenticated: true, canViewAnswers: result.account.plan === 'PAID',
+        canManagePacks: !publicBetaMode || result.account.plan === 'PAID',
+      }, { 'Set-Cookie': sessionCookie(result.token, secure) });
+    } catch (error) {
+      attempt.count += 1; loginAttempts.set(remote, attempt);
+      return sendJson(response, 401, { error: error.message });
+    }
+  }
+  if (request.method === 'POST' && url.pathname === '/api/auth/logout') {
+    logout(db, request.headers.cookie);
+    return sendJson(response, 200, { ok: true }, { 'Set-Cookie': clearSessionCookie(secure) });
+  }
+  if (request.method === 'POST' && url.pathname === '/api/banks/import') {
+    if (!account) return sendJson(response, 401, { error: 'Sign in to import challenge packs.' });
+    if (!identity.canManagePacks) return sendJson(response, 403, { error: 'Creating and importing challenge packs requires a signed-in paid host during public beta.' });
+    try {
+      const body = await readJson(request, 1100 * 1024);
+      const bank = createBank(db, account, limitsFor(account.plan), body.content ? parseBankUpload(body) : body);
+      return sendJson(response, 201, { bank });
+    } catch (error) { return sendJson(response, 400, { error: error.message }); }
+  }
+  if (request.method === 'POST' && ['/api/action', '/api/sync'].includes(url.pathname)) {
+    const socket = httpSocket(account, identity.canViewAnswers, publicBetaMode && !identity.authenticated);
+    try {
+      const message = await readJson(request);
+      if (!message || typeof message !== 'object' || Array.isArray(message)) throw new Error('Invalid request.');
+      if (url.pathname === '/api/sync') game.httpSync(socket, message);
+      else {
+        if (message.action === 'createTournament') requireTournamentCreationAllowance(request);
+        if (['answer', 'requestProgression', 'requestLeaderboard'].includes(message.action) && message.playerId) {
+          const playerSession = game.authenticatePlayer(message.code, message.playerId, message.playerToken);
+          socket.session = { role: 'PLAYER', code: playerSession.code, playerId: playerSession.playerId };
+        }
+        game.handle(socket, message);
+      }
+      game.disconnect(socket);
+      return sendJson(response, 200, { messages: socket.messages });
+    } catch (error) {
+      game.disconnect(socket);
+      const message = error instanceof Error ? error.message : 'Something went wrong.';
+      log('WARN', 'HTTP_CLIENT_MESSAGE_REJECTED', { path: url.pathname, message });
+      return sendJson(response, 400, { messages: [{ type: 'error', message }] });
+    }
+  }
+  if (!['GET', 'HEAD'].includes(request.method)) return sendJson(response, 405, { error: 'Method not allowed' });
+  let pathname;
+  try { pathname = decodeURIComponent(url.pathname); } catch { return sendJson(response, 400, { error: 'Invalid path' }); }
+  const requested = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  let filePath = path.resolve(publicDir, requested);
+  if (!filePath.startsWith(`${publicDir}${path.sep}`) && filePath !== path.join(publicDir, 'index.html')) return sendJson(response, 403, { error: 'Forbidden' });
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) filePath = path.join(publicDir, 'index.html');
+  const extension = path.extname(filePath);
+  const cache = path.basename(filePath) === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable';
+  response.writeHead(200, { 'Content-Type': contentTypes[extension] ?? 'application/octet-stream', 'Cache-Control': cache });
+  if (request.method === 'HEAD') return response.end();
+  fs.createReadStream(filePath).on('error', (error) => {
+    log('ERROR', 'STATIC_FILE_ERROR', { message: error.message, filePath });
+    if (!response.headersSent) sendJson(response, 500, { error: 'Unable to read site file' });
+    else response.destroy();
+  }).pipe(response);
+});
+
+const sockets = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024, perMessageDeflate: false });
+
+server.on('upgrade', (request, socket, head) => {
+  const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
+  if (url.pathname !== '/ws') return socket.destroy();
+  const origin = request.headers.origin;
+  if (origin) {
+    try { if (new URL(origin).host !== request.headers.host) return socket.destroy(); }
+    catch { return socket.destroy(); }
+  }
+  sockets.handleUpgrade(request, socket, head, (ws) => {
+    const identity = requestIdentity(request.headers.cookie);
+    ws.account = identity.account;
+    ws.canViewAnswers = identity.canViewAnswers;
+    ws.restrictToSampleBanks = publicBetaMode && !identity.authenticated;
+    sockets.emit('connection', ws, request);
+  });
+});
+
+sockets.on('connection', (ws, request) => {
+  const connectedAt = Date.now();
+  const remoteAddress = clientAddress(request);
+  ws.rate = { startedAt: Date.now(), count: 0 };
+  log('INFO', 'WEBSOCKET_CONNECTED', { remoteAddress, activeConnections: sockets.clients.size });
+  ws.on('message', (raw) => {
+    try {
+      const now = Date.now();
+      if (now - ws.rate.startedAt > 10_000) ws.rate = { startedAt: now, count: 0 };
+      if (++ws.rate.count > 40) {
+        game.send(ws, { type: 'error', message: 'Too many messages. Please reconnect.' });
+        return ws.close(1008, 'Message rate exceeded');
+      }
+      const message = JSON.parse(raw.toString('utf8'));
+      if (message.action === 'createTournament') requireTournamentCreationAllowance(request);
+      game.handle(ws, message);
+    } catch (error) {
+      game.send(ws, { type: 'error', message: error instanceof Error ? error.message : 'Something went wrong.' });
+      log('WARN', 'CLIENT_MESSAGE_REJECTED', { remoteAddress, message: error instanceof Error ? error.message : String(error) });
+    }
+  });
+  ws.on('close', (code, reason) => {
+    game.disconnect(ws);
+    log('INFO', 'WEBSOCKET_CLOSED', {
+      remoteAddress, code, reason: reason.toString(), durationMs: Date.now() - connectedAt,
+      role: ws.session?.role, tournamentCode: ws.session?.code, activeConnections: sockets.clients.size,
+    });
+  });
+  ws.on('error', (error) => log('WARN', 'WEBSOCKET_ERROR', { remoteAddress, message: error.message }));
+});
+
+const heartbeat = setInterval(() => {
+  for (const ws of sockets.clients) {
+    if (ws.readyState !== WebSocket.OPEN) continue;
+    try { ws.ping(); }
+    catch (error) {
+      log('WARN', 'WEBSOCKET_HEARTBEAT_ERROR', { message: error instanceof Error ? error.message : String(error) });
+      ws.terminate();
+    }
+  }
+}, 25_000);
+heartbeat.unref();
+
+server.listen(port, host, () => log('INFO', 'SERVER_STARTED', { host, port, publicDir, dataDir, node: process.version }));
+
+function shutdown(signal) {
+  log('INFO', 'SERVER_STOPPING', { signal });
+  clearInterval(heartbeat);
+  clearInterval(limiterCleanup);
+  game.close();
+  sockets.close();
+  server.close(() => { db.close(); process.exit(0); });
+  setTimeout(() => process.exit(1), 10_000).unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('uncaughtException', (error) => { log('ERROR', 'UNCAUGHT_EXCEPTION', { message: error.message, stack: error.stack }); shutdown('uncaughtException'); });
+process.on('unhandledRejection', (error) => log('ERROR', 'UNHANDLED_REJECTION', { message: error instanceof Error ? error.message : String(error) }));

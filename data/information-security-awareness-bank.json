@@ -1,0 +1,286 @@
+{
+  "name": "Information Security Awareness",
+  "description": "20 practical questions covering secure data handling, identity verification, access control, malware prevention, remote work, physical security, and incident reporting.",
+  "questions": [
+    {
+      "prompt": "A bank is migrating customer data to a new system. Which action BEST ensures information security during this transition?",
+      "options": [
+        "Allowing unrestricted data access for migration speed",
+        "Using temporary shared accounts",
+        "Encrypting data during transfer and restricting access",
+        "Disabling logging to avoid delays",
+        "Allowing employees to copy files to USB drives for transfer"
+      ],
+      "correctIndex": 2,
+      "explanation": "Encryption protects customer data from unauthorized disclosure while it is being transferred, and access restrictions ensure only approved personnel and systems can handle it. Shared accounts, unrestricted access, removable media, and disabled logging weaken accountability and increase exposure during a high-risk change.",
+      "difficulty": "scenario",
+      "tags": ["banking", "data-migration", "encryption", "access-control"]
+    },
+    {
+      "prompt": "Why are regular security awareness training sessions required in banks?",
+      "options": [
+        "To ensure staff remain updated on evolving threats and safe practices",
+        "To increase employee workload",
+        "To complete an HR requirement only",
+        "To reduce the number of IT personnel",
+        "To delay daily operations"
+      ],
+      "correctIndex": 0,
+      "explanation": "Threats, attack techniques, policies, and regulatory expectations change over time. Regular training helps employees recognize current risks, respond correctly, and reinforce secure behavior; it is not merely a paperwork exercise.",
+      "difficulty": "basic",
+      "tags": ["banking", "security-awareness", "human-risk"]
+    },
+    {
+      "prompt": "Incident Response Teams use logs during an investigation mainly to do what?",
+      "options": [
+        "Identify who used too much storage",
+        "Trace actions, reconstruct the timeline, and determine the incident's impact",
+        "Delete old files",
+        "Speed up system performance",
+        "Automatically remove malware"
+      ],
+      "correctIndex": 1,
+      "explanation": "Logs provide time-stamped evidence of authentication, system, network, and application activity. Responders correlate these records to understand what happened, identify affected accounts or systems, determine scope, and support containment and recovery decisions.",
+      "difficulty": "basic",
+      "tags": ["banking", "incident-response", "logging", "investigation"]
+    },
+    {
+      "prompt": "What should you do if you notice confidential printouts left at a shared printer?",
+      "options": [
+        "Leave them because the owner will eventually return",
+        "Throw them into a regular trash bin",
+        "Take them home for safekeeping",
+        "Place them in a secure location and notify the owner",
+        "Post them on a bulletin board"
+      ],
+      "correctIndex": 3,
+      "explanation": "Securing the documents immediately reduces the chance of unauthorized viewing or removal, while notifying the owner restores proper custody. Confidential material should never be left exposed, taken off-site without approval, or discarded outside an approved secure-destruction process.",
+      "difficulty": "scenario",
+      "tags": ["banking", "physical-security", "data-handling", "confidentiality"]
+    },
+    {
+      "prompt": "Which action is the MOST effective way to confirm a customer request received by email?",
+      "options": [
+        "Reply to the same email thread",
+        "Approve the request if the sender address looks legitimate",
+        "Call the customer using the registered contact number already held by the bank",
+        "Ask the customer to resend the email",
+        "Request the customer's password by email"
+      ],
+      "correctIndex": 2,
+      "explanation": "Calling a previously registered number provides out-of-band verification through a trusted contact record rather than relying on the potentially compromised email channel. Display names and sender addresses can be spoofed, and a bank should never ask a customer to disclose a password.",
+      "difficulty": "scenario",
+      "tags": ["banking", "customer-verification", "social-engineering", "out-of-band"]
+    },
+    {
+      "prompt": "A bank officer identifies that outdated software could allow an attacker to gain unauthorized access. What does the outdated software represent?",
+      "options": [
+        "A vulnerability",
+        "A threat",
+        "An asset",
+        "A safeguard",
+        "A security control"
+      ],
+      "correctIndex": 0,
+      "explanation": "Outdated software may contain a weakness that an attacker can exploit, so it is a vulnerability. The attacker or malicious event is the threat, while patching and secure configuration are controls used to reduce the risk.",
+      "difficulty": "basic",
+      "tags": ["banking", "risk", "vulnerability", "patching"]
+    },
+    {
+      "prompt": "When is hashing MOST appropriately used in a bank's systems?",
+      "options": [
+        "To encrypt email messages",
+        "To store passwords using a salted, slow password-hashing algorithm",
+        "To increase internet speed",
+        "To compress loan documents",
+        "To verify a customer's physical appearance"
+      ],
+      "correctIndex": 1,
+      "explanation": "Passwords should be processed with a unique salt and a purpose-built, computationally expensive password-hashing function such as Argon2id, scrypt, bcrypt, or PBKDF2. Hashing is one-way and supports password verification without storing the original password; ordinary fast hashes alone are not sufficient password storage.",
+      "difficulty": "basic",
+      "tags": ["banking", "hashing", "passwords", "authentication"]
+    },
+    {
+      "prompt": "Which scenario BEST demonstrates the principle of availability?",
+      "options": [
+        "ATM transaction data is encrypted",
+        "Loan records cannot be accessed because of a server outage",
+        "Account balances were modified without approval",
+        "A banking system is reachable by authorized customers and staff when needed",
+        "Paper documents were securely shredded"
+      ],
+      "correctIndex": 3,
+      "explanation": "Availability means authorized users can reliably access information and services when required. Encryption primarily protects confidentiality, unauthorized balance changes affect integrity, and an outage is an example of availability failing rather than being maintained.",
+      "difficulty": "basic",
+      "tags": ["banking", "cia-triad", "availability"]
+    },
+    {
+      "prompt": "Which action MOST effectively reduces shoulder surfing at a teller workstation?",
+      "options": [
+        "Using a brighter monitor",
+        "Writing down customer information more quickly",
+        "Positioning the screen away from public view and using a privacy filter where appropriate",
+        "Sharing the monitor with customers",
+        "Using larger fonts"
+      ],
+      "correctIndex": 2,
+      "explanation": "Screen placement and privacy filters limit the viewing angle and reduce opportunities for nearby people to observe sensitive information. Brightness, large fonts, and sharing the display can make exposed information easier to see.",
+      "difficulty": "scenario",
+      "tags": ["banking", "physical-security", "shoulder-surfing", "confidentiality"]
+    },
+    {
+      "prompt": "Why should employees avoid signing in with another person's account, even when that person gives permission?",
+      "options": [
+        "It breaks accountability and violates access-control policy",
+        "It confuses customer service",
+        "It reduces typing accuracy",
+        "It allows transactions to process faster",
+        "It simplifies password management"
+      ],
+      "correctIndex": 0,
+      "explanation": "Individual accounts allow actions to be attributed to the correct person and permissions to be enforced properly. Using another person's credentials undermines audit trails, weakens accountability, and may grant access beyond the employee's authorized role.",
+      "difficulty": "basic",
+      "tags": ["banking", "accountability", "access-control", "credentials"]
+    },
+    {
+      "prompt": "A person claiming to be a vendor technician asks to enter the server room but cannot provide identification. What is the correct response?",
+      "options": [
+        "Allow entry to avoid delaying the repair",
+        "Require proper identification and verify the visit through security or the approved vendor contact",
+        "Escort the person inside without further checks",
+        "Allow entry if the person appears professional",
+        "Leave the person unsupervised near the server room"
+      ],
+      "correctIndex": 1,
+      "explanation": "Identity, authorization, and the purpose of the visit must be independently verified before access is granted. Appearance and urgency are not proof of authorization; an approved visitor may also require logging and an escort under the bank's physical-access policy.",
+      "difficulty": "scenario",
+      "tags": ["banking", "physical-security", "vendor-risk", "social-engineering"]
+    },
+    {
+      "prompt": "Which action MOST reduces risk when handling customer personal information?",
+      "options": [
+        "Using personal email for a faster response",
+        "Saving all customer data on the local desktop",
+        "Saving files on an unapproved public cloud drive",
+        "Using secure, bank-approved systems and handling procedures",
+        "Leaving files unattended for another employee to collect"
+      ],
+      "correctIndex": 3,
+      "explanation": "Bank-approved systems are subject to required access controls, encryption, logging, retention, backup, and monitoring. Personal email, unapproved storage, local copies, and unattended files bypass these safeguards and increase the chance of loss or disclosure.",
+      "difficulty": "scenario",
+      "tags": ["banking", "personal-data", "data-handling", "approved-systems"]
+    },
+    {
+      "prompt": "A bank officer must work remotely. Which method provides the MOST secure connection?",
+      "options": [
+        "An open public Wi-Fi network",
+        "A personal hotspot with no password",
+        "A bank-issued VPN used over a secured network on an approved device",
+        "Sending work documents to a personal email account",
+        "Copying work to an unapproved USB drive and taking it home"
+      ],
+      "correctIndex": 2,
+      "explanation": "A bank-managed device and VPN establish an approved, authenticated, and encrypted path to bank resources; the underlying network should also be secured. Open networks, personal email, and unapproved removable storage expose data and bypass organizational controls.",
+      "difficulty": "scenario",
+      "tags": ["banking", "remote-work", "vpn", "network-security"]
+    },
+    {
+      "prompt": "A bank officer attempts to access high-risk loan data but receives an 'Access Denied' message because the data is not required for the officer's role. Which principle is being enforced?",
+      "options": [
+        "Least privilege",
+        "Open access",
+        "Maximum privilege",
+        "Implicit trust",
+        "Shared security"
+      ],
+      "correctIndex": 0,
+      "explanation": "Least privilege grants each user only the access needed to perform authorized responsibilities. Denying unnecessary access reduces the impact of mistakes, compromised accounts, and insider misuse.",
+      "difficulty": "scenario",
+      "tags": ["banking", "least-privilege", "access-control", "authorization"]
+    },
+    {
+      "prompt": "You accidentally click a suspicious email link, but nothing visible happens. What is the BEST next step?",
+      "options": [
+        "Ignore it because no page opened",
+        "Follow the bank's incident procedure immediately, including isolating the device if instructed and reporting the event",
+        "Forward the link to coworkers so they can inspect it",
+        "Delete the email without reporting it",
+        "Click the link again to confirm whether it works"
+      ],
+      "correctIndex": 1,
+      "explanation": "A malicious link can trigger hidden activity even when nothing appears on screen. Prompt reporting allows the security team to investigate and contain possible compromise; isolation should follow the bank's documented procedure, and the link should not be opened or forwarded again.",
+      "difficulty": "scenario",
+      "tags": ["banking", "phishing", "incident-reporting", "containment"]
+    },
+    {
+      "prompt": "Which employee practice BEST helps prevent malware from entering bank systems?",
+      "options": [
+        "Installing several competing antivirus products",
+        "Giving employees permanent administrator privileges",
+        "Opening unknown attachments to inspect them",
+        "Avoiding downloads and attachments from unverified sources and following bank security controls",
+        "Disabling security warnings"
+      ],
+      "correctIndex": 3,
+      "explanation": "Avoiding untrusted files and using approved channels reduces the chance of executing malicious code. Multiple competing security products may conflict, while administrator access, unknown attachments, and disabled warnings increase the impact or likelihood of infection.",
+      "difficulty": "basic",
+      "tags": ["banking", "malware", "safe-computing", "security-awareness"]
+    },
+    {
+      "prompt": "A customer uploads a scanned identification document through the bank's secure portal. Which control most directly protects the document's confidentiality while it is transmitted and stored?",
+      "options": [
+        "File compression",
+        "The image file format",
+        "Increased network bandwidth",
+        "Visual identity checking",
+        "Encryption in transit and at rest"
+      ],
+      "correctIndex": 4,
+      "explanation": "Encryption makes the document unreadable without the appropriate cryptographic keys, protecting it during transmission and storage. Authentication and authorization are also important, but compression, file type, and bandwidth do not provide confidentiality.",
+      "difficulty": "basic",
+      "tags": ["banking", "encryption", "confidentiality", "customer-data"]
+    },
+    {
+      "prompt": "A bank requires workstations to lock automatically after five minutes of inactivity. Which risk does this control primarily reduce?",
+      "options": [
+        "Network outages",
+        "Slow application performance",
+        "Incorrect data entry",
+        "Excessive electricity use",
+        "Unauthorized access and data exposure from unattended devices"
+      ],
+      "correctIndex": 4,
+      "explanation": "Automatic locking prevents someone nearby from using an unattended authenticated session or viewing sensitive information. It is an access-control safeguard rather than a performance, availability, or power-management feature.",
+      "difficulty": "scenario",
+      "tags": ["banking", "workstation-security", "access-control", "confidentiality"]
+    },
+    {
+      "prompt": "Which activity most increases exposure to a Man-in-the-Middle attack?",
+      "options": [
+        "Using the bank's secured internal network",
+        "Using the corporate VPN",
+        "Signing in with multi-factor authentication",
+        "Using the bank's managed wired network",
+        "Connecting to an open, untrusted Wi-Fi network without an approved secure tunnel"
+      ],
+      "correctIndex": 4,
+      "explanation": "An attacker on an open or hostile network may attempt to intercept or alter traffic, especially when applications or users fail to validate secure connections. A properly configured corporate VPN reduces this exposure by encrypting traffic to the trusted gateway.",
+      "difficulty": "scenario",
+      "tags": ["banking", "mitm", "wifi", "network-security"]
+    },
+    {
+      "prompt": "A pop-up claims that banking software needs a quick patch from an unknown source. What should you do?",
+      "options": [
+        "Click the link immediately",
+        "Ask a coworker whether the pop-up looks safe",
+        "Restart the computer and click the same link again",
+        "Ignore all future software updates",
+        "Use only updates verified and deployed through the bank's approved IT process, and report the suspicious prompt"
+      ],
+      "correctIndex": 4,
+      "explanation": "Software updates should come through trusted, authenticated, and bank-managed channels. An unexpected update prompt may deliver malware; reporting it allows IT or security staff to investigate while legitimate patching continues through the approved process.",
+      "difficulty": "scenario",
+      "tags": ["banking", "patching", "malware", "software-supply-chain"]
+    }
+  ]
+}

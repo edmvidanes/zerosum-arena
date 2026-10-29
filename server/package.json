@@ -1,0 +1,16 @@
+{
+  "name": "@zerosum/server",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "csv-parse": "^7.0.3",
+    "ws": "^8.18.3"
+  }
+}

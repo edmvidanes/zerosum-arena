@@ -1,0 +1,9 @@
+[Unit]
+Description=Renew the Zerosum TLS certificate
+After=docker.service network-online.target
+Requires=docker.service
+ConditionPathExists=/etc/letsencrypt/live/zerosum.website/fullchain.pem
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/zerosum-renew-tls

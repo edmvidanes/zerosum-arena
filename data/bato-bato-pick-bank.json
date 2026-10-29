@@ -1,0 +1,34 @@
+{
+  "name": "Bato Bato Pick",
+  "gameMode": "RPS",
+  "description": "Real player-versus-player Rock Paper Scissors. Pick a move in secret, reveal together, and make the losing player take 1 HP damage.",
+  "questions": [
+    {
+      "id": "RPS-PICK-1",
+      "prompt": "Bato, bato… pick! Choose your move.",
+      "options": ["Rock 🪨", "Paper 📄", "Scissors ✂️"],
+      "correctIndex": 0,
+      "explanation": "Moves are compared directly against the opponent's move.",
+      "difficulty": "basic",
+      "tags": ["rock-paper-scissors", "pvp"]
+    },
+    {
+      "id": "RPS-PICK-2",
+      "prompt": "Choose in secret. What will you throw?",
+      "options": ["Rock 🪨", "Paper 📄", "Scissors ✂️"],
+      "correctIndex": 0,
+      "explanation": "Rock beats Scissors, Scissors beats Paper, and Paper beats Rock.",
+      "difficulty": "basic",
+      "tags": ["rock-paper-scissors", "pvp"]
+    },
+    {
+      "id": "RPS-PICK-3",
+      "prompt": "Read your opponent—or trust your luck. Pick now!",
+      "options": ["Rock 🪨", "Paper 📄", "Scissors ✂️"],
+      "correctIndex": 0,
+      "explanation": "Matching moves draw and replay without damage.",
+      "difficulty": "scenario",
+      "tags": ["rock-paper-scissors", "pvp"]
+    }
+  ]
+}

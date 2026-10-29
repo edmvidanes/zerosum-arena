@@ -1,0 +1,6 @@
+[Unit]
+Description=Back up Zerosum SQLite database
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/zerosum-backup

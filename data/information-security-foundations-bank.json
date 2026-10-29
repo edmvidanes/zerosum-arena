@@ -1,0 +1,550 @@
+{
+  "name": "Information Security: Risk, CIA & Incident Response",
+  "description": "68 foundational and scenario-based questions covering risk and threats, the CIA triad, and incident response, with explicit distinctions between NIST SP 800-61 Rev. 2 (2012) and Rev. 3 (2025).",
+  "questions": [
+    {
+      "prompt": "In information security, risk is best described as which combination?",
+      "options": ["Threat and control cost","Asset age and location","Likelihood and impact","Vulnerability and password length"],
+      "correctIndex": 2,
+      "explanation": "Risk is commonly evaluated by considering how likely an event is and the impact if it occurs.",
+      "difficulty": "basic",
+      "tags": ["risk","fundamentals"]
+    },
+    {
+      "prompt": "What is a threat?",
+      "options": ["A weakness in a system","A safeguard that reduces risk","The financial value of an asset","A potential cause of an unwanted incident"],
+      "correctIndex": 3,
+      "explanation": "A threat is a circumstance or event with the potential to cause harm, such as an attack, human error, or a natural hazard. It is distinct from a vulnerability, which is a weakness that may be exploited or triggered.",
+      "difficulty": "basic",
+      "tags": ["threats","fundamentals"]
+    },
+    {
+      "prompt": "What is a vulnerability?",
+      "options": ["A confirmed security incident","A weakness that a threat could exploit","A measure of business impact","A type of insurance"],
+      "correctIndex": 1,
+      "explanation": "A vulnerability is a weakness in technology, process, configuration, or behavior that could be exploited.",
+      "difficulty": "basic",
+      "tags": ["risk","vulnerability"]
+    },
+    {
+      "prompt": "In information security risk management, which statement best describes an asset?",
+      "options": ["Only physical servers","Any data, system, service, or resource valuable to the organization","Only customer passwords","Only licensed software"],
+      "correctIndex": 1,
+      "explanation": "An asset is something of value to the organization. Security-relevant assets can include information, systems, services, people, and facilities; they are not limited to physical equipment or passwords.",
+      "difficulty": "basic",
+      "tags": ["risk","assets"]
+    },
+    {
+      "prompt": "What is inherent risk?",
+      "options": ["Risk remaining after controls","Risk transferred to an insurer","Risk before controls are considered","Risk that cannot be measured"],
+      "correctIndex": 2,
+      "explanation": "Inherent risk is the level of risk that exists before safeguards or controls are applied.",
+      "difficulty": "basic",
+      "tags": ["risk"]
+    },
+    {
+      "prompt": "What is residual risk?",
+      "options": ["Risk remaining after controls are applied","Risk discovered before an assessment","A risk with no owner","A risk that has already caused an incident"],
+      "correctIndex": 0,
+      "explanation": "Controls reduce risk but rarely eliminate it; what remains is residual risk.",
+      "difficulty": "basic",
+      "tags": ["risk","controls"]
+    },
+    {
+      "prompt": "Risk appetite describes what?",
+      "options": ["The maximum number of vulnerabilities allowed","The amount and type of risk an organization is willing to pursue or retain","The exact cost of every incident","The speed at which incidents must be closed"],
+      "correctIndex": 1,
+      "explanation": "Risk appetite is the broad level and type of risk an organization is willing to accept in pursuit of its objectives.",
+      "difficulty": "basic",
+      "tags": ["risk","governance"]
+    },
+    {
+      "prompt": "What is the primary purpose of a risk register?",
+      "options": ["Store employee passwords","Replace all incident reports","Track identified risks, owners, ratings, and treatments","List only accepted risks"],
+      "correctIndex": 2,
+      "explanation": "A risk register provides a structured record of risks, their assessment, ownership, treatment, and status.",
+      "difficulty": "basic",
+      "tags": ["risk","governance"]
+    },
+    {
+      "prompt": "Which assessment uses labels such as Low, Medium, and High?",
+      "options": ["Quantitative analysis","Cryptographic analysis","Qualitative analysis","Packet analysis"],
+      "correctIndex": 2,
+      "explanation": "Qualitative risk analysis uses descriptive categories or rankings rather than exact monetary values.",
+      "difficulty": "basic",
+      "tags": ["risk","assessment"]
+    },
+    {
+      "prompt": "Which assessment expresses risk using values such as expected annual financial loss?",
+      "options": ["Quantitative analysis","Qualitative analysis","Vulnerability scanning","Threat hunting"],
+      "correctIndex": 0,
+      "explanation": "Quantitative analysis uses numerical estimates, often including monetary loss and frequency.",
+      "difficulty": "basic",
+      "tags": ["risk","assessment"]
+    },
+    {
+      "prompt": "Annual Loss Expectancy (ALE) is calculated using which formula?",
+      "options": ["Asset Value × Exposure Factor","Single Loss Expectancy × Annual Rate of Occurrence","Likelihood ÷ Impact","Control Cost × Residual Risk"],
+      "correctIndex": 1,
+      "explanation": "ALE equals Single Loss Expectancy (SLE) multiplied by Annual Rate of Occurrence (ARO).",
+      "difficulty": "basic",
+      "tags": ["risk","quantitative"]
+    },
+    {
+      "prompt": "A server is worth $100,000 and an incident would cause a 25% loss. What is the Single Loss Expectancy?",
+      "options": ["$4,000","$75,000","$125,000","$25,000"],
+      "correctIndex": 3,
+      "explanation": "SLE equals Asset Value multiplied by Exposure Factor: $100,000 × 0.25 = $25,000.",
+      "difficulty": "scenario",
+      "tags": ["risk","quantitative"]
+    },
+    {
+      "prompt": "An organization stops offering a risky service entirely. Which risk response is this?",
+      "options": ["Avoid","Accept","Transfer","Mitigate"],
+      "correctIndex": 0,
+      "explanation": "Risk avoidance removes the activity or condition that creates the risk.",
+      "difficulty": "scenario",
+      "tags": ["risk","treatment"]
+    },
+    {
+      "prompt": "Buying cyber insurance is primarily which risk response?",
+      "options": ["Avoid","Ignore","Transfer","Eliminate"],
+      "correctIndex": 2,
+      "explanation": "Insurance transfers part of the financial impact to another party, though accountability and some risk remain.",
+      "difficulty": "scenario",
+      "tags": ["risk","treatment"]
+    },
+    {
+      "prompt": "Installing multi-factor authentication to reduce account takeover risk is an example of what?",
+      "options": ["Risk mitigation","Risk acceptance","Risk avoidance","Risk transfer"],
+      "correctIndex": 0,
+      "explanation": "Mitigation applies controls that reduce the likelihood or impact of a risk.",
+      "difficulty": "scenario",
+      "tags": ["risk","controls"]
+    },
+    {
+      "prompt": "After assessing likelihood and impact, management formally decides to retain a risk within approved tolerance. Which risk response is this?",
+      "options": ["Accept","Avoid","Transfer","Escalate"],
+      "correctIndex": 0,
+      "explanation": "Risk acceptance is an informed decision to retain an assessed risk. Formal approval and ongoing monitoring distinguish managed acceptance from simply ignoring the risk.",
+      "difficulty": "scenario",
+      "tags": ["risk","treatment"]
+    },
+    {
+      "prompt": "A firewall that blocks unauthorized traffic is primarily what type of control?",
+      "options": ["Preventive","Detective","Corrective","Recovery"],
+      "correctIndex": 0,
+      "explanation": "A preventive control attempts to stop an unwanted event before it succeeds.",
+      "difficulty": "basic",
+      "tags": ["controls","risk"]
+    },
+    {
+      "prompt": "A security monitoring system detects suspicious activity and generates an alert. Within the preventive, detective, and corrective control taxonomy, what type of control is it?",
+      "options": ["Compensating","Detective","Corrective","Preventive"],
+      "correctIndex": 1,
+      "explanation": "Detective controls identify events or conditions that may indicate unwanted activity.",
+      "difficulty": "basic",
+      "tags": ["controls","detection"]
+    },
+    {
+      "prompt": "Within the preventive, detective, and corrective control taxonomy, restoring a damaged system from a known-good backup is primarily what type of control?",
+      "options": ["Deterrent","Directive","Corrective","Preventive"],
+      "correctIndex": 2,
+      "explanation": "A corrective control addresses the effects of an unwanted event and helps return a system to an acceptable state. Some more detailed control taxonomies also classify restoration from backup as a recovery control.",
+      "difficulty": "basic",
+      "tags": ["controls","recovery"]
+    },
+    {
+      "prompt": "What does the principle of least privilege require?",
+      "options": ["Everyone receives administrator access during emergencies","Access is based only on seniority","All access is permanent once approved","Users receive only the access needed for their tasks"],
+      "correctIndex": 3,
+      "explanation": "Least privilege limits permissions to the minimum necessary for a user, process, or system to perform its function.",
+      "difficulty": "basic",
+      "tags": ["controls","access-control"]
+    },
+    {
+      "prompt": "What is defense in depth?",
+      "options": ["Relying on one very strong firewall","Using multiple layers of complementary security controls","Keeping every system disconnected","Encrypting only the most sensitive file"],
+      "correctIndex": 1,
+      "explanation": "Defense in depth uses overlapping safeguards so one failed control does not expose the entire environment.",
+      "difficulty": "basic",
+      "tags": ["controls","strategy"]
+    },
+    {
+      "prompt": "Which statement best represents a Zero Trust approach?",
+      "options": ["Verify explicitly and grant least-privilege access","Trust all internal network traffic","Block every remote user","Replace authentication with encryption"],
+      "correctIndex": 0,
+      "explanation": "Zero Trust avoids implicit trust based on network location and continuously evaluates access using explicit signals.",
+      "difficulty": "basic",
+      "tags": ["controls","zero-trust"]
+    },
+    {
+      "prompt": "An email impersonates a delivery service and asks many employees to open a malicious link. What is this?",
+      "options": ["Tailgating","Phishing","Shoulder surfing","DDoS"],
+      "correctIndex": 1,
+      "explanation": "Phishing uses deceptive messages to persuade recipients to reveal information or perform an unsafe action.",
+      "difficulty": "scenario",
+      "tags": ["threats","social-engineering"]
+    },
+    {
+      "prompt": "A carefully researched malicious email targets one finance employee by name. What is this?",
+      "options": ["Spear phishing","Vishing","Password spraying","Watering-hole attack"],
+      "correctIndex": 0,
+      "explanation": "Spear phishing is tailored to a particular individual or group using specific contextual details.",
+      "difficulty": "scenario",
+      "tags": ["threats","social-engineering"]
+    },
+    {
+      "prompt": "A phishing email is specifically tailored to deceive a company's chief executive officer. What is this type of targeted phishing commonly called?",
+      "options": ["Whaling","Smishing","Baiting","Pretexting"],
+      "correctIndex": 0,
+      "explanation": "Whaling is a form of targeted phishing aimed at senior executives or other high-value individuals.",
+      "difficulty": "basic",
+      "tags": ["threats","social-engineering"]
+    },
+    {
+      "prompt": "Malware encrypts company files and demands payment. Which threat is this?",
+      "options": ["Spyware","Adware","Root certificate","Ransomware"],
+      "correctIndex": 3,
+      "explanation": "Ransomware denies access to data or systems, commonly through encryption, and demands payment.",
+      "difficulty": "basic",
+      "tags": ["threats","malware"]
+    },
+    {
+      "prompt": "Which statement about insider threats is correct?",
+      "options": ["They are always malicious employees","They only involve stolen passwords","They cannot affect cloud systems","They can be malicious, negligent, or accidental"],
+      "correctIndex": 3,
+      "explanation": "Insider threats may involve intentional abuse or unintentional actions by people with legitimate access.",
+      "difficulty": "basic",
+      "tags": ["threats","insider"]
+    },
+    {
+      "prompt": "Attackers compromise a trusted software vendor and distribute a malicious update. What type of attack is this?",
+      "options": ["Supply-chain attack","Brute-force attack","On-path attack","Physical intrusion"],
+      "correctIndex": 0,
+      "explanation": "A supply-chain attack compromises a trusted dependency, provider, or distribution path to reach downstream targets.",
+      "difficulty": "scenario",
+      "tags": ["threats","third-party"]
+    },
+    {
+      "prompt": "Thousands of devices flood a public website until legitimate users cannot reach it. Which attack is occurring?",
+      "options": ["Distributed denial-of-service","SQL injection","Privilege escalation","Data exfiltration"],
+      "correctIndex": 0,
+      "explanation": "A DDoS attack uses many sources to exhaust capacity and harm service availability.",
+      "difficulty": "scenario",
+      "tags": ["threats","availability"]
+    },
+    {
+      "prompt": "An attacker who does not know an account's password repeatedly submits guessed passwords to that account. What is the most specific description?",
+      "options": ["Password spraying","Credential stuffing","Brute-force password guessing","Pharming"],
+      "correctIndex": 2,
+      "explanation": "Password guessing repeatedly tests candidate passwords without already knowing valid credentials. It differs from password spraying across many accounts and credential stuffing using stolen username-password pairs.",
+      "difficulty": "basic",
+      "tags": ["threats","authentication"]
+    },
+    {
+      "prompt": "An attacker tries one common password against hundreds of accounts. What is this?",
+      "options": ["Credential stuffing","Rainbow-table attack","Password spraying","Whaling"],
+      "correctIndex": 2,
+      "explanation": "Password spraying tests a small number of common passwords across many accounts to avoid lockouts.",
+      "difficulty": "scenario",
+      "tags": ["threats","authentication"]
+    },
+    {
+      "prompt": "An attacker uses username and password pairs leaked from another website. What is this?",
+      "options": ["Spear phishing","Password spraying","Typosquatting","Credential stuffing"],
+      "correctIndex": 3,
+      "explanation": "Credential stuffing relies on password reuse by testing previously stolen credentials on another service.",
+      "difficulty": "scenario",
+      "tags": ["threats","authentication"]
+    },
+    {
+      "prompt": "What is an attack surface?",
+      "options": ["Only internet-facing servers","A list of confirmed attackers","The physical area of a data center","The total set of points where an attacker might enter or extract data"],
+      "correctIndex": 3,
+      "explanation": "The attack surface includes exposed technologies, identities, interfaces, processes, and physical entry points.",
+      "difficulty": "basic",
+      "tags": ["threats","risk"]
+    },
+    {
+      "prompt": "Which element of the CIA triad prevents unauthorized disclosure of information?",
+      "options": ["Confidentiality","Availability","Integrity","Accountability"],
+      "correctIndex": 0,
+      "explanation": "Confidentiality ensures information is accessible only to authorized people, processes, and systems.",
+      "difficulty": "basic",
+      "tags": ["cia","confidentiality"]
+    },
+    {
+      "prompt": "Which element of the CIA triad protects information from unauthorized modification?",
+      "options": ["Integrity","Confidentiality","Availability","Privacy"],
+      "correctIndex": 0,
+      "explanation": "Integrity protects the accuracy, completeness, and trustworthiness of information and systems.",
+      "difficulty": "basic",
+      "tags": ["cia","integrity"]
+    },
+    {
+      "prompt": "Which element of the CIA triad ensures authorized users can access systems when needed?",
+      "options": ["Confidentiality","Integrity","Non-repudiation","Availability"],
+      "correctIndex": 3,
+      "explanation": "Availability focuses on reliable and timely access to information and services.",
+      "difficulty": "basic",
+      "tags": ["cia","availability"]
+    },
+    {
+      "prompt": "An employee accidentally emails a confidential salary file to an unauthorized external recipient. Which CIA property was primarily affected?",
+      "options": ["Integrity","Confidentiality","Availability","Resilience"],
+      "correctIndex": 1,
+      "explanation": "The information was disclosed to an unauthorized person, making this primarily a confidentiality incident.",
+      "difficulty": "scenario",
+      "tags": ["cia","confidentiality"]
+    },
+    {
+      "prompt": "An attacker changes bank account details in an invoice. Which CIA property was primarily affected?",
+      "options": ["Integrity","Availability","Confidentiality","Redundancy"],
+      "correctIndex": 0,
+      "explanation": "Unauthorized alteration of data is an integrity violation.",
+      "difficulty": "scenario",
+      "tags": ["cia","integrity"]
+    },
+    {
+      "prompt": "A critical application is offline during business hours. Which CIA property was primarily affected?",
+      "options": ["Integrity","Confidentiality","Authenticity","Availability"],
+      "correctIndex": 3,
+      "explanation": "An outage prevents authorized users from accessing the service, affecting availability.",
+      "difficulty": "scenario",
+      "tags": ["cia","availability"]
+    },
+    {
+      "prompt": "A powered-off company laptop is stolen. Which control most directly protects the confidentiality of data stored on its disk?",
+      "options": ["Load balancing","Checksums","Full-disk encryption","High-availability clustering"],
+      "correctIndex": 2,
+      "explanation": "Full-disk encryption protects data at rest when the disk remains locked and the attacker lacks the decryption key. It does not guarantee protection if an attacker obtains the keys or the device is already unlocked.",
+      "difficulty": "scenario",
+      "tags": ["cia","confidentiality","controls"]
+    },
+    {
+      "prompt": "Which mechanism can detect whether a file has changed when compared against a trusted original value?",
+      "options": ["Encryption","Hashing","Load balancing","Data compression"],
+      "correctIndex": 1,
+      "explanation": "Comparing a file's cryptographic hash with a trusted reference can detect changes. An unauthenticated hash alone does not establish who created the file or protect against an attacker replacing both the file and its reference hash.",
+      "difficulty": "basic",
+      "tags": ["cia","integrity"]
+    },
+    {
+      "prompt": "Which design most directly improves service availability?",
+      "options": ["A single larger server","Redundant systems with tested failover","Longer passwords","Data classification labels"],
+      "correctIndex": 1,
+      "explanation": "Redundancy and tested failover reduce single points of failure and support continued operation.",
+      "difficulty": "scenario",
+      "tags": ["cia","availability"]
+    },
+    {
+      "prompt": "True or False: Hashing alone keeps the contents of a file confidential.",
+      "options": ["True","False"],
+      "correctIndex": 1,
+      "explanation": "Hashing can support integrity verification but does not encrypt or hide the original content.",
+      "difficulty": "basic",
+      "tags": ["cia","integrity","confidentiality"]
+    },
+    {
+      "prompt": "Why should organizations maintain offline or otherwise isolated backups?",
+      "options": ["To make phishing impossible","To eliminate the need for access controls","To prevent every software bug","To reduce the chance ransomware can encrypt every recovery copy"],
+      "correctIndex": 3,
+      "explanation": "Isolated backups improve recoverability because an attacker or ransomware process cannot easily alter every copy.",
+      "difficulty": "scenario",
+      "tags": ["cia","availability","ransomware"]
+    },
+    {
+      "prompt": "A properly implemented digital signature primarily supports integrity, signer authenticity, and which additional property?",
+      "options": ["Non-repudiation","Availability","Anonymity","Data minimization"],
+      "correctIndex": 0,
+      "explanation": "Digital signatures can support non-repudiation by providing verifiable evidence linking signed data to a private key associated with the signer. This depends on reliable identity binding and protection of the signing key; a signature alone does not prove which human used a compromised key.",
+      "difficulty": "basic",
+      "tags": ["cia","integrity","cryptography"]
+    },
+    {
+      "prompt": "In the historical NIST SP 800-61 Rev. 2 (2012) four-phase incident response lifecycle, what is the first phase?",
+      "options": ["Containment","Recovery","Eradication","Preparation"],
+      "correctIndex": 3,
+      "explanation": "The historical Rev. 2 model starts with Preparation, followed by Detection and Analysis; Containment, Eradication, and Recovery; and Post-Incident Activity. Rev. 3 superseded Rev. 2 on April 3, 2025 and aligns incident response with CSF 2.0.",
+      "difficulty": "basic",
+      "tags": ["nist","incident-response"]
+    },
+    {
+      "prompt": "In the historical NIST SP 800-61 Rev. 2 model, which activity belongs to Detection and Analysis?",
+      "options": ["Purchasing cyber insurance","Restoring normal operations","Confirming indicators and determining incident scope","Removing malware persistence"],
+      "correctIndex": 2,
+      "explanation": "Detection and Analysis validates signs of an incident and assesses its nature, scope, and priority. In the Rev. 3 model, these activities align with Detect, with lessons feeding ongoing improvement.",
+      "difficulty": "basic",
+      "tags": ["nist","incident-response","detection"]
+    },
+    {
+      "prompt": "Disconnecting a compromised workstation from the network is primarily which incident response action?",
+      "options": ["Preparation","Containment","Recovery","Lessons learned"],
+      "correctIndex": 1,
+      "explanation": "Isolation limits the spread and impact of an incident, making it a containment action. Containment belongs to Respond in the Rev. 3 model; the historical Rev. 2 model groups containment, eradication, and recovery into one phase.",
+      "difficulty": "scenario",
+      "tags": ["nist","incident-response","containment"]
+    },
+    {
+      "prompt": "Removing malware persistence and remediating the weakness it exploited are primarily which incident response activity?",
+      "options": ["Preparation","Eradication","Detection","Risk acceptance"],
+      "correctIndex": 1,
+      "explanation": "Eradication removes malicious artifacts and remediates causes of compromise. In the historical Rev. 2 model, it is an activity within the combined Containment, Eradication, and Recovery phase; in Rev. 3, eradication belongs to Respond.",
+      "difficulty": "basic",
+      "tags": ["nist","incident-response","eradication"]
+    },
+    {
+      "prompt": "Restoring affected systems, validating normal operation, and monitoring for recurrence are primarily which incident response activity?",
+      "options": ["Recovery","Containment","Preparation","Identification"],
+      "correctIndex": 0,
+      "explanation": "Recovery carefully returns systems to normal operation and checks for recurrence. It is part of the combined Containment, Eradication, and Recovery phase in historical Rev. 2 and aligns with the Recover function in Rev. 3.",
+      "difficulty": "basic",
+      "tags": ["nist","incident-response","recovery"]
+    },
+    {
+      "prompt": "What is the main purpose of a post-incident lessons-learned meeting?",
+      "options": ["Assign blame as quickly as possible","Delete all incident evidence","Improve controls, plans, and future response","Reopen every contained system"],
+      "correctIndex": 2,
+      "explanation": "The review captures what worked, what failed, and actions to improve controls and response. Useful lessons should also be acted on during an incident when safe rather than waiting for the final meeting.",
+      "difficulty": "basic",
+      "tags": ["nist","incident-response","lessons-learned"]
+    },
+    {
+      "prompt": "Why should responders preserve volatile evidence before powering off a suspected system when it is safe to do so?",
+      "options": ["The hard drive becomes encrypted after shutdown","Backups stop working permanently","Network logs are stored only in RAM","Memory contents may be lost when power is removed"],
+      "correctIndex": 3,
+      "explanation": "Running processes, active connections, and other memory-resident evidence may disappear when a device is powered off.",
+      "difficulty": "scenario",
+      "tags": ["incident-response","evidence"]
+    },
+    {
+      "prompt": "What is an Indicator of Compromise (IOC)?",
+      "options": ["A guaranteed attribution to one attacker","A policy approving residual risk","Observable evidence that may indicate malicious activity","A replacement for incident analysis"],
+      "correctIndex": 2,
+      "explanation": "IOCs are observable artifacts or patterns, such as malicious hashes or domains, that may signal compromise.",
+      "difficulty": "basic",
+      "tags": ["incident-response","detection"]
+    },
+    {
+      "prompt": "What does chain of custody document?",
+      "options": ["Which employee owns each business risk","Every firewall rule change","Who handled evidence, when, and why","The order of recovery objectives"],
+      "correctIndex": 2,
+      "explanation": "Chain of custody records the collection, transfer, storage, and handling of evidence to support its integrity.",
+      "difficulty": "basic",
+      "tags": ["incident-response","evidence"]
+    },
+    {
+      "prompt": "What is an incident response playbook?",
+      "options": ["A list of every possible attacker","A public breach notification","A replacement for responder judgment","A documented set of actions for handling a specific incident type"],
+      "correctIndex": 3,
+      "explanation": "A playbook gives responders repeatable steps, roles, decision points, and communications for a defined scenario.",
+      "difficulty": "basic",
+      "tags": ["nist","incident-response","preparation"]
+    },
+    {
+      "prompt": "Why should an incident response communication plan be prepared in advance?",
+      "options": ["To ensure timely, approved communication through known channels","To allow anyone to speak publicly","To avoid documenting decisions","To replace technical containment"],
+      "correctIndex": 0,
+      "explanation": "A prepared plan identifies stakeholders, escalation paths, approved channels, and responsibilities before pressure is high.",
+      "difficulty": "scenario",
+      "tags": ["nist","incident-response","communication"]
+    },
+    {
+      "prompt": "Which set of considerations should primarily guide incident prioritization?",
+      "options": ["The first alert received","The seniority of the first reporter","Business impact, scope, data affected, and recoverability","The number of tools used by the attacker"],
+      "correctIndex": 2,
+      "explanation": "Consider actual and potential business impact, affected data and systems, scope, and the effort and time required to recover. Use the organization's severity criteria rather than alert arrival order.",
+      "difficulty": "scenario",
+      "tags": ["nist","incident-response","triage"]
+    },
+    {
+      "prompt": "A responder immediately deletes suspicious files before collecting evidence or understanding the scope. What is the main risk?",
+      "options": ["The incident automatically becomes public","The attacker receives administrator access","The risk register becomes invalid","Evidence and clues needed for investigation may be destroyed"],
+      "correctIndex": 3,
+      "explanation": "Uncoordinated eradication can destroy evidence, hide the root cause, and leave other compromised systems undiscovered.",
+      "difficulty": "scenario",
+      "tags": ["incident-response","evidence","eradication"]
+    },
+    {
+      "prompt": "Under NIST SP 800-61 Rev. 3 (2025), which CSF 2.0 functions form the active incident response portion of its life cycle model?",
+      "options": ["Govern, Identify, Protect","Plan, Build, Operate","Detect, Respond, Recover","Prevent, Punish, Prosecute"],
+      "correctIndex": 2,
+      "explanation": "Detect, Respond, and Recover cover incident discovery and analysis, management including containment and eradication, and restoration. All six CSF 2.0 functions support incident response overall.",
+      "difficulty": "basic",
+      "tags": ["nist","csf","incident-response"]
+    },
+    {
+      "prompt": "Under NIST SP 800-61 Rev. 3 (2025), Govern, Identify, and Protect primarily provide which support for incident response?",
+      "options": ["Public attribution of attackers","Automatic evidence destruction","Preparation and reduction of incident risk","Replacement of Detect and Respond"],
+      "correctIndex": 2,
+      "explanation": "These functions support broader cybersecurity risk management, preparation, and prevention. Lessons learned feed continuous improvement across all six CSF 2.0 functions; Govern, Identify, and Protect are not the active incident response portion of the model.",
+      "difficulty": "basic",
+      "tags": ["nist","csf","incident-response"]
+    },
+    {
+      "prompt": "What is the purpose of a Business Impact Analysis (BIA)?",
+      "options": ["Scan source code for vulnerabilities","Identify critical functions and the impact of disruption","Calculate password strength","Assign blame after an outage"],
+      "correctIndex": 1,
+      "explanation": "A BIA identifies critical activities, dependencies, and the consequences of downtime to guide resilience and recovery planning.",
+      "difficulty": "basic",
+      "tags": ["risk","recovery","bia"]
+    },
+    {
+      "prompt": "What does Recovery Time Objective (RTO) define?",
+      "options": ["The maximum acceptable amount of data loss measured in time","The target time to restore a service after disruption","The time between vulnerability scans","The age of the oldest backup"],
+      "correctIndex": 1,
+      "explanation": "RTO is the targeted duration within which a service or process should be restored.",
+      "difficulty": "basic",
+      "tags": ["risk","recovery","rto"]
+    },
+    {
+      "prompt": "What does Recovery Point Objective (RPO) define?",
+      "options": ["The maximum number of responders","The target maximum data loss measured in time","The time to notify regulators","The minimum password age"],
+      "correctIndex": 1,
+      "explanation": "RPO sets the point in time to which data must be recovered after disruption, commonly expressed as the maximum acceptable data-loss window. Backup or replication frequency and successful recovery tests should support that objective.",
+      "difficulty": "basic",
+      "tags": ["risk","recovery","rpo"]
+    },
+    {
+      "prompt": "A monitoring rule meant to detect malicious activity flags an administrator's authorized, benign action as an attack. How should this alert be classified?",
+      "options": ["True positive","True negative","False negative","False positive"],
+      "correctIndex": 3,
+      "explanation": "A false positive is an alert that incorrectly identifies benign activity as malicious.",
+      "difficulty": "scenario",
+      "tags": ["detection","monitoring"]
+    },
+    {
+      "prompt": "A malicious attack that is within a monitoring system's intended detection scope occurs, but the system fails to flag it. What is this detection result?",
+      "options": ["False positive","False negative","True positive","Risk transfer"],
+      "correctIndex": 1,
+      "explanation": "A false negative occurs when malicious activity is present but the control fails to detect it.",
+      "difficulty": "scenario",
+      "tags": ["detection","monitoring"]
+    },
+    {
+      "prompt": "Why should security systems synchronize their clocks?",
+      "options": ["To make passwords expire faster","To prevent every denial-of-service attack","To encrypt network traffic","To correlate events accurately across logs and systems"],
+      "correctIndex": 3,
+      "explanation": "Consistent timestamps are essential for reconstructing timelines and correlating related events during investigations.",
+      "difficulty": "basic",
+      "tags": ["incident-response","logging"]
+    },
+    {
+      "prompt": "Who is normally responsible for ensuring an assigned risk is monitored and treated?",
+      "options": ["Any anonymous user","Only the external auditor","Risk owner","The threat actor"],
+      "correctIndex": 2,
+      "explanation": "A risk owner is accountable for overseeing the risk, its treatment, and its ongoing status.",
+      "difficulty": "basic",
+      "tags": ["risk","governance"]
+    },
+    {
+      "prompt": "Before onboarding a cloud vendor that will handle sensitive data, what should an organization do?",
+      "options": ["Assume the vendor has equivalent controls","Assess the vendor's security, contractual obligations, and incident responsibilities","Transfer all accountability to the vendor","Disable internal monitoring"],
+      "correctIndex": 1,
+      "explanation": "Third-party risk management evaluates vendor controls, data handling, dependencies, contracts, and incident coordination before and during the relationship.",
+      "difficulty": "scenario",
+      "tags": ["risk","third-party","supply-chain"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+.git
+.data
+app/dist
+node_modules
+*.pem
+*.sqlite*
+*.log
+.env*
+!/.env.example
