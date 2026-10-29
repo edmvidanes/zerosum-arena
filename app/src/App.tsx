@@ -37,13 +37,18 @@ const createDraftQuestion = (): DraftQuestion => ({
 });
 const domainNames: Record<number, string> = { 1: 'Cloud Concepts', 2: 'Security & Compliance', 3: 'Technology & Services', 4: 'Billing, Pricing & Support' };
 const questionLabel = (question: QuestionPreview) => question.domain ? (domainNames[question.domain] ?? `Domain ${question.domain}`) : question.type === 'TRUE_FALSE' ? 'True or false' : 'Multiple choice';
-const playerAvatars = [
-  '☁️', '🤖', '🦊', '🐼', '🐯', '🦄', '👾', '🚀', '🐲', '🐸',
-  '🐵', '🦁', '🐨', '🐙', '🦋', '🦖', '🐧', '🦉', '🐺', '🐝',
-  '🦈', '🐬', '🐢', '🦀', '🐳', '🐰', '🐻', '🐶', '🐱', '🦝',
-  '🦥', '🦦', '🦅', '🦇', '🐔', '🐴', '🐮', '🐷', '🐹', '🐭',
-  '🐥', '🦆', '🦜', '🦚', '🐍', '🦎', '🦂', '🕷️', '🐞', '🐌',
-];
+const playerAvatars = Array.from({ length: 12 }, (_, index) => `sprite-${String(index + 1).padStart(2, '0')}`);
+const fighterNames = ['Crimson Ronin', 'Amber Ronin', 'Golden Ronin', 'Verdant Ronin', 'Azure Ronin', 'Violet Ronin', 'Cobalt Samurai', 'Royal Samurai', 'Magenta Samurai', 'Rust Samurai', 'Solar Samurai', 'Jade Samurai'];
+export type SpritePose = 'idle' | 'charge' | 'attack' | 'hit' | 'block' | 'ko' | 'win';
+const spritePoseColumns: Record<SpritePose, number> = { idle: 0, charge: 2, attack: 3, hit: 4, block: 5, ko: 6, win: 7 };
+export function spriteRow(seed?: string) {
+  const match = String(seed ?? '').match(/^sprite-(\d{1,2})$/);
+  if (match) return Math.min(11, Math.max(0, Number(match[1]) - 1));
+  let hash = 0;
+  for (const char of String(seed ?? 'F')) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return hash % 12;
+}
+export function fighterName(seed?: string) { return fighterNames[spriteRow(seed)]; }
 const initialUrlCode = new URLSearchParams(location.search).get('code')?.toUpperCase() ?? '';
 const savedHostToken = sessionStorage.getItem('zerosum-host-token') ?? '';
 const savedHostCode = sessionStorage.getItem('zerosum-host-code') ?? '';
@@ -64,38 +69,14 @@ function playerName(players: PublicPlayer[], id: string) {
   return players.find((player) => player.id === id)?.name ?? 'Unknown player';
 }
 
-const fighterPalettes = [
-  { hair: '#ffd23e', gi: '#ff7a1a', skin: '#f2c79b', aura: '#57d8ff' },
-  { hair: '#57d8ff', gi: '#2456d6', skin: '#e8b58a', aura: '#ffd23e' },
-  { hair: '#ff5a4e', gi: '#7a1fd0', skin: '#c98a5e', aura: '#ff9d3a' },
-  { hair: '#b8f53e', gi: '#0e8a5f', skin: '#f2c79b', aura: '#7dffce' },
-  { hair: '#f2f2f2', gi: '#22283a', skin: '#a06a42', aura: '#c0d4ff' },
-  { hair: '#ff8ad8', gi: '#d62f6e', skin: '#ffd9b3', aura: '#ffb3ec' },
-  { hair: '#2b2b3a', gi: '#d63a0a', skin: '#e8b58a', aura: '#ff7a5c' },
-  { hair: '#3effc8', gi: '#0a4fd6', skin: '#8a5a34', aura: '#aef4ff' },
-];
-const fighterHair = [
-  'M48 8 L56 26 L70 12 L68 32 L84 24 L72 40 L86 44 L64 50 L60 34 L52 48 L46 32 L36 48 L34 30 L18 42 L28 26 L16 22 L32 18 L30 4 L42 18 Z',
-  'M48 4 L54 22 L66 8 L64 28 L80 18 L68 36 L82 38 L60 46 L56 28 L48 42 L40 26 L34 44 L18 36 L30 24 L14 22 L28 14 L26 2 L40 14 Z',
-  'M48 12 L58 24 L74 16 L66 34 L80 36 L62 44 L58 30 L50 44 L42 28 L36 44 L20 34 L32 26 L18 18 L34 16 L38 2 L46 14 Z',
-];
-export function FighterAvatar({ seed, large = false }: { seed?: string; large?: boolean }) {
-  const key = String(seed ?? 'F');
-  let hash = 0;
-  for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  const palette = fighterPalettes[hash % fighterPalettes.length];
-  const hair = fighterHair[hash % fighterHair.length];
-  return <svg className={`fighter-avatar-svg ${large ? 'large' : ''}`} viewBox="0 0 96 96" role="img" aria-label="Fighter character">
-    <ellipse cx="48" cy="52" rx="40" ry="42" fill={palette.aura} opacity="0.28" />
-    <path d="M20 96 L34 68 L62 68 L76 96 Z" fill={palette.gi} />
-    <rect x="34" y="76" width="28" height="6" fill="#141824" />
-    <path d="M42 68 L48 82 L54 68 L50 64 L46 64 Z" fill="#f5f7ff" />
-    <circle cx="48" cy="50" r="17" fill={palette.skin} />
-    <path d={hair} fill={palette.hair} stroke="#141824" strokeWidth="1.6" />
-    <path d="M36 50 L45 52 M60 50 L51 52" stroke="#141824" strokeWidth="2.4" strokeLinecap="round" />
-    <circle cx="41" cy="56" r="2.2" fill="#141824" /><circle cx="55" cy="56" r="2.2" fill="#141824" />
-    <path d="M43 64 Q48 62 53 64" stroke="#141824" strokeWidth="2" fill="none" strokeLinecap="round" />
-  </svg>;
+export function FighterAvatar({ seed, large = false, pose = 'idle' }: { seed?: string; large?: boolean; pose?: SpritePose }) {
+  const row = spriteRow(seed);
+  const col = spritePoseColumns[pose];
+  const y = `${(row / 11) * 100}%`;
+  const x = `${(col / 7) * 100}%`;
+  const idleX = `${(1 / 7) * 100}%`;
+  return <span className={`fighter-sprite pose-${pose} ${large ? 'large' : ''}`} role="img" aria-label={`${fighterName(seed)} fighter sprite`}
+    style={{ backgroundPosition: `${x} ${y}`, '--bp0': x, '--bp1': idleX, '--bpy': y } as React.CSSProperties} />;
 }
 
 let sfxContext: AudioContext | null = null;
@@ -166,7 +147,7 @@ export function playSfx(kind: 'click' | 'charge' | 'beam' | 'impact' | 'explosio
 function PlayerAvatar({ player, large = false, hit = false }: { player?: PublicPlayer; large?: boolean; hit?: boolean }) {
   const hp = player?.hp ?? 3;
   return <span className={`player-avatar hp-${hp} ${large ? 'large' : ''} ${hit ? 'hit' : ''}`} aria-label={`${player?.name ?? 'Player'} avatar, ${hp} HP`}>
-    <FighterAvatar seed={player?.avatar ?? 'F'} large={large} />
+    <FighterAvatar seed={player?.avatar ?? 'sprite-01'} large={large} pose={hp === 0 ? 'ko' : hit ? 'hit' : 'idle'} />
     {hp < 3 && <i aria-hidden="true">{hp === 0 ? '✕' : '⚡'}</i>}
   </span>;
 }
@@ -180,9 +161,10 @@ function DamageOverlay({ amount, player }: { amount: number; player?: PublicPlay
 const skillNames = ['SCHOLAR BEAM', 'MIND CANNON', 'EXAM FLASH', 'KNOWLEDGE WAVE', 'FOCUS BLAST'];
 
 function FighterSprite({ player, side, state }: { player?: PublicPlayer; side: 'left' | 'right'; state: string }) {
+  const pose: SpritePose = (player?.hp ?? 1) <= 0 ? 'ko' : state === 'attacking' ? 'attack' : state === 'hit' ? 'hit' : state === 'charging' ? 'charge' : 'idle';
   return <div className={`fighter ${side} ${state}`}>
     <div className="fighter-aura" aria-hidden="true"><i /><i /><i /></div>
-    <div className="fighter-body" aria-hidden="true"><FighterAvatar seed={player?.avatar ?? 'F'} large /></div>
+    <div className="fighter-body" aria-hidden="true"><FighterAvatar seed={player?.avatar ?? 'sprite-01'} large pose={pose} /></div>
     <div className="fighter-shadow" aria-hidden="true" />
     <div className="fighter-plate"><small>{side === 'left' ? 'YOU' : 'RIVAL'}</small><b>{player?.name ?? 'Unknown'}</b><strong>{hpDisplay(player?.hp ?? 0)}</strong></div>
   </div>;
@@ -1329,7 +1311,7 @@ export function App() {
       </header>
       <section className="hero">
         <div className="eyebrow">LAST PLAYER STANDING</div>
-        <div className="hero-fighters" aria-hidden="true"><FighterAvatar seed="GOKU" large /><span className="hero-vs">VS</span><FighterAvatar seed="VEGT" large /></div>
+        <div className="hero-fighters" aria-hidden="true"><FighterAvatar seed="sprite-01" large pose="attack" /><span className="hero-vs">VS</span><FighterAvatar seed="sprite-07" large pose="hit" /></div>
         <h1>Bring the challenge.<br/><em>Outlast everyone.</em></h1>
         <p>Live elimination battles powered by your own questions. Accuracy keeps you alive—and speed wins the round.</p>
         <div className="feature-chips"><span>⚡ Live duels</span><span>♥ 3 HP</span><span>🏆 One champion</span></div>
@@ -1363,7 +1345,7 @@ export function App() {
         <div className="avatar-choice"><span className="avatar-preview" aria-label="Selected fighter"><FighterAvatar seed={avatar} /></span><div><strong>Your fighter</strong><small>Pick your battle character</small></div><button type="button" onClick={() => setAvatarPickerOpen(true)}>Choose fighter</button></div>
         <label>Game code<input className="code-input" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="ABC123" /></label>
         <button className="action" disabled={!connected}>Enter arena</button>
-        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your avatar" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Avatar gallery</h2></div><button type="button" aria-label="Close avatar gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><div className="avatar-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose fighter ${choice}`} aria-pressed={avatar === choice} className={avatar === choice ? 'selected' : ''} key={choice} onClick={() => { setAvatar(choice); setAvatarPickerOpen(false); playSfx('click'); }}><FighterAvatar seed={choice} /></button>)}</div></section></div>}
+        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your avatar" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Avatar gallery</h2></div><button type="button" aria-label="Close avatar gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><div className="avatar-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose fighter ${choice}`} aria-pressed={avatar === choice} className={avatar === choice ? 'selected' : ''} key={choice} onClick={() => { setAvatar(choice); setAvatarPickerOpen(false); playSfx('click'); }}><FighterAvatar seed={choice} /><span className="fighter-name">{fighterName(choice)}</span></button>)}</div></section></div>}
       </form>}
       {mode === 'solo' && <div className="panel entry-form">
         <button type="button" className="back" onClick={() => setMode('choose')}>← Back</button>
@@ -1371,7 +1353,7 @@ export function App() {
         <p className="muted">Duel bot rivals one at a time. Win to climb, lose and the streak ends. HP resets every duel.</p>
         <label>Fighter handle<input autoFocus maxLength={24} value={name} onChange={(event) => setName(event.target.value)} placeholder="Cloud champion" /></label>
         <div className="avatar-choice"><span className="avatar-preview" aria-label="Selected fighter"><FighterAvatar seed={avatar} /></span><div><strong>Your fighter</strong><small>Pick your battle character</small></div><button type="button" onClick={() => setAvatarPickerOpen(true)}>Choose fighter</button></div>
-        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your fighter" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Fighter gallery</h2></div><button type="button" aria-label="Close fighter gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><div className="avatar-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose fighter ${choice}`} aria-pressed={avatar === choice} className={avatar === choice ? 'selected' : ''} key={choice} onClick={() => { setAvatar(choice); setAvatarPickerOpen(false); playSfx('click'); }}><FighterAvatar seed={choice} /></button>)}</div></section></div>}
+        {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your fighter" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Fighter gallery</h2></div><button type="button" aria-label="Close fighter gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><div className="avatar-grid">{playerAvatars.map((choice) => <button type="button" aria-label={`Choose fighter ${choice}`} aria-pressed={avatar === choice} className={avatar === choice ? 'selected' : ''} key={choice} onClick={() => { setAvatar(choice); setAvatarPickerOpen(false); playSfx('click'); }}><FighterAvatar seed={choice} /><span className="fighter-name">{fighterName(choice)}</span></button>)}</div></section></div>}
         <p className="muted">When your run ends, your result joins the Solo Leaderboard as <b>{name || 'Your name'} #SESSION</b>.</p>
         <label>Challenge pack<select value={selectedBankId} onChange={(event) => setSelectedBankId(event.target.value)}>{banks.map((bank) => <option key={bank.id} value={bank.id}>{bank.isSample ? 'Included · ' : ''}{bank.name}</option>)}</select>{!banks.length && <small>Sign-in/beta access loads the included packs.</small>}</label>
         <label>Ladder length<select value={ladderLength} onChange={(event) => setLadderLength(Number(event.target.value))}>{[5, 10, 25, 50].map((value) => <option key={value} value={value}>{value} rivals</option>)}</select></label>

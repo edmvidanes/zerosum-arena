@@ -41,8 +41,8 @@ test('a three-player tournament runs from lobby to champion with a durable audit
     assert.equal(game.tournament(created.code).arena_tone, 'RESPECTFUL');
     const players = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333'];
     const sockets = players.map(() => new FakeSocket());
-    players.forEach((playerId, index) => game.join(sockets[index], { code: created.code, playerId, name: `Player ${index + 1}`, avatar: index === 0 ? '🚀' : '🐼' }));
-    assert.equal(game.player(created.code, players[0]).avatar, '🚀');
+    players.forEach((playerId, index) => game.join(sockets[index], { code: created.code, playerId, name: `Player ${index + 1}`, avatar: index === 0 ? 'sprite-01' : 'sprite-07' }));
+    assert.equal(game.player(created.code, players[0]).avatar, 'sprite-01');
     game.start(host, { code: created.code, hostToken: created.hostToken });
 
     for (let question = 0; question < 3; question += 1) {
@@ -320,7 +320,7 @@ test('an instructor can cancel an unstarted lobby and every lobby has a 20-minut
     assert.equal(host.messages.filter((message) => message.type === 'snapshot').at(-1).tournament.phase, 'CANCELLED');
     assert.equal(db.prepare(`SELECT COUNT(*) AS count FROM events WHERE code=? AND kind='TOURNAMENT_CANCELLED'`).get(created.code).count, 1);
     assert.throws(() => game.join(new FakeSocket(), {
-      code: created.code, name: 'Late Player', avatar: '🐲', playerId: '99999999-9999-4999-8999-999999999999',
+      code: created.code, name: 'Late Player', avatar: 'sprite-03', playerId: '99999999-9999-4999-8999-999999999999',
     }), /cancelled or its lobby expired/i);
     assert.throws(() => game.start(host, { code: created.code, hostToken: created.hostToken }), /cannot be started/i);
 
@@ -432,3 +432,4 @@ test('anonymous beta hosts cannot select an account custom pack', () => {
     fs.rmSync(temp, { recursive: true, force: true });
   }
 });
+

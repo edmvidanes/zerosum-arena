@@ -12,13 +12,7 @@ const lobbyTimeoutMs = 20 * 60 * 1000;
 const rpsMoves = ['Rock 🪨', 'Paper 📄', 'Scissors ✂️'];
 const arenaTones = new Set(['RESPECTFUL', 'FRIENDLY', 'COMPETITIVE', 'RAGEBAIT', 'NO_MERCY']);
 const arenaTone = (value) => arenaTones.has(String(value ?? '').toUpperCase()) ? String(value).toUpperCase() : 'RESPECTFUL';
-const playerAvatars = new Set([
-  '☁️', '🤖', '🦊', '🐼', '🐯', '🦄', '👾', '🚀', '🐲', '🐸',
-  '🐵', '🦁', '🐨', '🐙', '🦋', '🦖', '🐧', '🦉', '🐺', '🐝',
-  '🦈', '🐬', '🐢', '🦀', '🐳', '🐰', '🐻', '🐶', '🐱', '🦝',
-  '🦥', '🦦', '🦅', '🦇', '🐔', '🐴', '🐮', '🐷', '🐹', '🐭',
-  '🐥', '🦆', '🦜', '🦚', '🐍', '🦎', '🦂', '🕷️', '🐞', '🐌',
-]);
+const playerAvatars = new Set(Array.from({ length: 12 }, (_, index) => `sprite-${String(index + 1).padStart(2, '0')}`));
 
 export class ZerosumGame {
   constructor(db, options = {}) {
@@ -60,8 +54,8 @@ export class ZerosumGame {
   }
 
   cleanAvatar(input) {
-    const avatar = String(input ?? '☁️');
-    return playerAvatars.has(avatar) ? avatar : '☁️';
+    const avatar = String(input ?? 'sprite-01');
+    return playerAvatars.has(avatar) ? avatar : 'sprite-01';
   }
 
   validPlayerToken(player, token) {
