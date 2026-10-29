@@ -452,8 +452,8 @@ export class ZerosumGame {
     this.db.prepare(`INSERT INTO tournament_winners (code, champion_name, champion_avatar, bank_name, player_count, rounds, ended_at)
       VALUES (?,?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET champion_name=excluded.champion_name, champion_avatar=excluded.champion_avatar, bank_name=excluded.bank_name, player_count=excluded.player_count, rounds=excluded.rounds, ended_at=excluded.ended_at`)
       .run(code, winner.name, winner.avatar, bank?.name ?? '', tournament.player_count ?? 0, round, Date.now());
-    // Keep only the 5 most recent champions, mirroring the solo leaderboard cap.
-    this.db.prepare(`DELETE FROM tournament_winners WHERE code NOT IN (SELECT code FROM tournament_winners ORDER BY ended_at DESC LIMIT 5)`).run();
+    // Keep only the metadata needed for the last 10 hosted battles.
+    this.db.prepare(`DELETE FROM tournament_winners WHERE code NOT IN (SELECT code FROM tournament_winners ORDER BY ended_at DESC, code DESC LIMIT 10)`).run();
   }
 
   recordSoloResult(code, result) {

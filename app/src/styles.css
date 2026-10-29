@@ -464,13 +464,14 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .variant-grid { grid-template-columns: repeat(6, 1fr); padding-top: 0; }
 
 /* Recent champions dropdown + tournament history */
-.champions-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
+.champions-toggle { width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; padding: 11px 0 2px; background: none; border: 0; border-top: 1px solid #7fb2dd2b; cursor: pointer; color: #9fc6e8; font: 700 12px "Chakra Petch", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
 .champions-toggle strong { display: block; font: 700 20px "Chakra Petch", sans-serif; color: #f2fbff; margin-top: 2px; }
-.champions-chevron { font-size: 22px; color: #ff9d3a; }
-.winners-list { margin-top: 14px; }
+.champions-chevron { font-size: 16px; color: #ff9d3a; }
+.winners-list { margin-top: 0; }
 .winners-list li { padding: 0; overflow: hidden; }
 .winner-row { width: 100%; display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 8px 10px; cursor: pointer; color: inherit; text-align: left; }
 .winner-row:hover { background: #ff9d3a14; }
+.winner-row > b { min-width: 28px; color: #ffb45e; font: 800 12px "Chakra Petch", sans-serif; }
 .winner-row .board-name { flex: 1 1 auto; }
 .winner-row em { color: #9fb4d8; font-style: normal; font-size: 12px; white-space: nowrap; }
 .history-champion { display: flex; gap: 16px; align-items: center; background: #121a2e; border: 1px solid #ffd23e55; border-radius: 14px; padding: 14px; margin-top: 14px; }

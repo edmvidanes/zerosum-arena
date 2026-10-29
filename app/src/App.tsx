@@ -1121,11 +1121,17 @@ export function App() {
 
   const refreshSoloBoards = useCallback(async () => {
     try {
-      const [board, open, winners] = await Promise.all([fetch('/api/solo/leaderboard', { cache: 'no-store' }), fetch('/api/solo/open', { cache: 'no-store' }), fetch('/api/tournaments/recent-winners', { cache: 'no-store' })]);
+      const [board, open] = await Promise.all([fetch('/api/solo/leaderboard', { cache: 'no-store' }), fetch('/api/solo/open', { cache: 'no-store' })]);
       if (board.ok) setSoloLeaderboard(((await board.json()).entries ?? []).filter((entry: { streak: number; result: string }) => entry.streak >= 2 && entry.result !== 'FORFEIT').slice(0, 5));
       if (open.ok) setOpenChallenges((await open.json()).open ?? []);
-      if (winners.ok) setRecentWinners(((await winners.json()).entries ?? []).slice(0, 5));
     } catch { /* boards are best-effort */ }
+  }, []);
+
+  const refreshRecentWinners = useCallback(async () => {
+    try {
+      const winners = await fetch('/api/tournaments/recent-winners', { cache: 'no-store' });
+      if (winners.ok) setRecentWinners(((await winners.json()).entries ?? []).slice(0, 10));
+    } catch { /* champions board is best-effort */ }
   }, []);
   async function openHistory(codeToView: string) {
     playSfx('click');
@@ -1143,6 +1149,12 @@ export function App() {
     const timer = window.setInterval(() => { if (!snapshot) void refreshSoloBoards(); }, 5000);
     return () => window.clearInterval(timer);
   }, [refreshSoloBoards, snapshot, snapshot?.tournament.phase]);
+
+  useEffect(() => {
+    void refreshRecentWinners();
+    const timer = window.setInterval(() => { void refreshRecentWinners(); }, 60000);
+    return () => window.clearInterval(timer);
+  }, [refreshRecentWinners]);
 
   const httpRequest = useCallback(async (path: '/api/action' | '/api/sync', body: Record<string, unknown>) => {
     const response = await fetch(path, {
@@ -1592,7 +1604,7 @@ export function App() {
       {mode === 'choose' && <section className="streak-panel"><FighterAvatar seed={avatar} /><span>👤 {name || 'Guest fighter'}</span><strong>Finish a Solo Arcade run and your name lands on the leaderboard below — tagged with your session code.</strong></section>}
       {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">LIVE · OPEN TO CHALLENGERS</div><h2>Streaks you can challenge right now</h2></div><span>{openChallenges.length} live</span></div>{openChallenges.length ? <div className="open-list">{openChallenges.map((open) => <article key={open.code}><FighterAvatar seed={open.playerAvatar} /><div><b>{open.playerName} <small>#{open.code}</small></b><span>🎒 {open.bankName} · 🔥 streak {open.streak} · rival {open.rivalIndex}/{open.ladderLength}</span></div><button type="button" onClick={() => { setSelectedBankId(open.bankId); setMode('challenge'); playSfx('click'); }}>Challenge ⚔</button></article>)}</div> : <p className="muted">No streak is open to challengers at the moment. Start a Solo Arcade run with “Allow challenges” to appear here.</p>}</section>}
       {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">SOLO LEADERBOARD</div><h2>Top streaks</h2></div><span>Updated live</span></div>{soloLeaderboard.length ? <ol className="leaderboard-list">{soloLeaderboard.slice(0, 5).map((entry, index) => <li key={entry.code}><b>#{index + 1}</b><FighterAvatar seed={entry.avatar} /><span className="board-name">{entry.name} <small>#{entry.code}</small></span><span className="board-bank">{entry.bankName}</span><strong>🔥 {entry.streak}</strong><em>{entry.result === 'LADDER_CLEARED' ? '👑 Cleared' : entry.result === 'CHALLENGED' ? '⚔ Challenged' : entry.result === 'FORFEIT' ? '🏳 Forfeited' : '💥 Ended'}</em></li>)}</ol> : <p className="muted">No finished streaks yet — be the first name on this board.</p>}</section>}
-      {mode === 'choose' && <section className="board-card champions-card"><button type="button" className="champions-toggle" aria-expanded={championsOpen} onClick={() => { setChampionsOpen((value) => !value); playSfx('click'); }}><span><span className="eyebrow">HOSTED TOURNAMENTS</span><strong>Recent champions · Top 5</strong></span><span className="champions-chevron" aria-hidden="true">{championsOpen ? '▾' : '▸'}</span></button>{championsOpen && (recentWinners.length ? <ol className="leaderboard-list winners-list">{recentWinners.map((winner) => <li key={winner.code}><button type="button" className="winner-row" onClick={() => void openHistory(winner.code)}><FighterAvatar seed={winner.championAvatar} /><span className="board-name">{winner.championName} <small>#{winner.code}</small></span><span className="board-bank">{winner.bankName}</span><strong>{winner.playerCount} players · {winner.rounds} rounds</strong><em>{new Date(winner.endedAt).toLocaleDateString()}</em></button></li>)}</ol> : <p className="muted">No hosted tournament has crowned a champion yet — host one and finish it to appear here. Click a champion later to see the full tournament history.</p>)}</section>}
+      {mode === 'choose' && <section className="board-card champions-card"><div className="section-title"><div><div className="eyebrow">HOSTED TOURNAMENTS</div><h2>Recent champions</h2></div><span>Last 10 battles</span></div>{recentWinners.length ? <> <ol className="leaderboard-list winners-list">{recentWinners.slice(0, championsOpen ? 10 : 3).map((winner, index) => <li key={winner.code}><button type="button" className="winner-row" onClick={() => void openHistory(winner.code)}><b>#{index + 1}</b><FighterAvatar seed={winner.championAvatar} /><span className="board-name">{winner.championName} <small>#{winner.code}</small></span><span className="board-bank">{winner.bankName}</span><strong>{winner.playerCount} players · {winner.rounds} rounds</strong><em>{new Date(winner.endedAt).toLocaleDateString()}</em></button></li>)}</ol>{recentWinners.length > 3 && <button type="button" className="champions-toggle" aria-expanded={championsOpen} onClick={() => { setChampionsOpen((value) => !value); playSfx('click'); }}><span>{championsOpen ? 'Show top 3' : `View all ${recentWinners.length} battles`}</span><span className="champions-chevron" aria-hidden="true">{championsOpen ? '▴' : '▾'}</span></button>}</> : <p className="muted">No hosted tournament has crowned a champion yet — host one and finish it to appear here. Click a champion to see the final standings.</p>}</section>}
       {historyCode && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Tournament history" onClick={() => setHistoryCode('')}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">TOURNAMENT HISTORY · #{historyCode}</div><h2>{historyData?.bankName || 'Hosted tournament'}</h2></div><button type="button" aria-label="Close history" onClick={() => setHistoryCode('')}>×</button></header>{historyLoading || !historyData ? <p className="muted">Loading tournament history…</p> : <><div className="history-champion"><FighterAvatar seed={historyData.champion?.avatar ?? 'arena-01'} large /><div><small>CHAMPION</small><strong>{historyData.champion?.name ?? 'No champion'}</strong><span>{historyData.rounds} rounds · {historyData.playerCount} players · {historyData.phase}</span></div></div><h3 className="history-heading">Final standings</h3><ol className="leaderboard-list">{historyData.players.map((player, index) => <li key={player.id}><b>#{index + 1}</b><FighterAvatar seed={player.avatar} /><span className="board-name">{player.name}</span><strong>{player.status === 'CHAMPION' ? '👑 Champion' : `♥ ${player.hp} HP`}</strong></li>)}</ol></>}</section></div>}
       {mode === 'choose' && <section className="rules-card">
         <div className="rules-heading"><div><div className="eyebrow">BATTLE BRIEFING</div><h2>How to play</h2></div><span>Accuracy first. Speed breaks the tie.</span></div>

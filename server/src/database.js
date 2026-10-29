@@ -71,6 +71,7 @@ export function openDatabase(dataDir) {
     bank_name TEXT NOT NULL DEFAULT '', player_count INTEGER NOT NULL DEFAULT 0,
     rounds INTEGER NOT NULL DEFAULT 0, ended_at INTEGER NOT NULL
   );`);
+  db.exec(`DELETE FROM tournament_winners WHERE code NOT IN (SELECT code FROM tournament_winners ORDER BY ended_at DESC, code DESC LIMIT 10);`);
   db.exec(`CREATE TABLE IF NOT EXISTS challenge_queue (
     player_id TEXT PRIMARY KEY, bank_id TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL DEFAULT '☁️',
     token_hash TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL

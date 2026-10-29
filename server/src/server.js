@@ -165,7 +165,7 @@ const server = http.createServer(async (request, response) => {
     return sendJson(response, 200, { entries });
   }
   if (request.method === 'GET' && url.pathname === '/api/tournaments/recent-winners') {
-    const entries = db.prepare('SELECT code, champion_name AS championName, champion_avatar AS championAvatar, bank_name AS bankName, player_count AS playerCount, rounds, ended_at AS endedAt FROM tournament_winners ORDER BY ended_at DESC LIMIT 5').all();
+    const entries = db.prepare('SELECT code, champion_name AS championName, champion_avatar AS championAvatar, bank_name AS bankName, player_count AS playerCount, rounds, ended_at AS endedAt FROM tournament_winners ORDER BY ended_at DESC, code DESC LIMIT 10').all();
     return sendJson(response, 200, { entries });
   }
   if (request.method === 'GET' && url.pathname.startsWith('/api/tournaments/') && url.pathname.endsWith('/history')) {
