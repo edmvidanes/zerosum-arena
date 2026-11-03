@@ -21,16 +21,21 @@ export async function extractDocumentText(input) {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const standardFontDataUrl = new URL('../../node_modules/pdfjs-dist/standard_fonts/', import.meta.url).href;
     const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer), disableWorker: true, standardFontDataUrl }).promise;
-    const pages = [];
-    const maxPages = Math.min(pdf.numPages, 60);
-    for (let pageNo = 1; pageNo <= maxPages; pageNo += 1) {
-      const page = await pdf.getPage(pageNo);
-      const content = await page.getTextContent();
-      pages.push(content.items.map((item) => item.str ?? '').join(' '));
+    try {
+      const pages = [];
+      const maxPages = Math.min(pdf.numPages, 60);
+      for (let pageNo = 1; pageNo <= maxPages; pageNo += 1) {
+        const page = await pdf.getPage(pageNo);
+        const content = await page.getTextContent();
+        pages.push(content.items.map((item) => item.str ?? '').join(' '));
+      }
+      const text = pages.join('\n').trim();
+      if (text.length < 80) throw new Error('That PDF looks scanned/image-only. Upload a text-based PDF so the AI can read the lesson.');
+      return { text, pages: pdf.numPages, characters: text.length };
+    } finally {
+      // Release the parsed PDF immediately; uploads are never kept after the request.
+      try { await pdf.destroy(); } catch { /* already released */ }
     }
-    const text = pages.join('\n').trim();
-    if (text.length < 80) throw new Error('That PDF looks scanned/image-only. Upload a text-based PDF so the AI can read the lesson.');
-    return { text, pages: pdf.numPages, characters: text.length };
   }
   throw new Error('Only PDF lessons are accepted. Convert the file to PDF and try again.');
 }

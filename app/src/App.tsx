@@ -1500,7 +1500,14 @@ export function App() {
     setAiBusy(true); setAiProgress(8); setAiStage(0); setError('');
     try {
       const response = await fetch('/api/ai/generate-pack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: aiMode === 'topic' ? aiTopic : '', sourceFile: aiMode === 'pdf' ? aiFile : undefined, retention: packRetention }) });
-      const result = await response.json() as { bank?: BankSummary; error?: string; model?: string };
+      const raw = await response.text();
+      let result: { bank?: BankSummary; error?: string; model?: string } = {};
+      try { result = JSON.parse(raw) as typeof result; } catch {
+        if (response.status === 413) { setAiProgress(0); setAiStage(0); setError('That PDF is too large for the Forge upload limit. Use a PDF under 4 MB.'); return; }
+        if (response.status === 504 || response.status === 502) { setAiProgress(0); setAiStage(0); setError('The Forge took too long to respond. Try again, or use a shorter PDF.'); return; }
+        if (response.status === 429) { setAiProgress(0); setAiStage(0); setError('Too many Forge requests right now. Wait a few minutes and try again.'); return; }
+        setAiProgress(0); setAiStage(0); setError(`AI Pack Forge returned an unexpected response (${response.status}). Try again.`); return;
+      }
       if (!response.ok || !result.bank) { setAiProgress(0); setAiStage(0); setError(result.error ?? 'AI Pack Forge could not create that pack.'); return; }
       setAiProgress(100); setAiStage(forgeStages.length - 1);
       await loadBanks(); setSelectedBankId(result.bank.id);
