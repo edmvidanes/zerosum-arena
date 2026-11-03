@@ -291,9 +291,20 @@ const server = http.createServer(async (request, response) => {
         body.sourceFile = undefined;
         if (!String(body.topic ?? '').trim()) body.topic = 'the uploaded document: ' + String(extracted.name ?? 'lesson.pdf').replace(/\.[^.]+$/, '');
       }
-      const generated = await generateQuizPack(body);
+      // Models occasionally return one malformed question; retry once before failing.
+      let generated; let questions; let lastError;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          generated = await generateQuizPack(body);
+          questions = normalizeQuestions(generated.questions, 25);
+          break;
+        } catch (error) {
+          lastError = error;
+          if (error.code === 'AI_NOT_CONFIGURED' || error.code === 'AI_EXPLICIT_CONTENT') throw error;
+        }
+      }
       body.sourceText = ''; body.sourceFile = undefined;
-      const questions = normalizeQuestions(generated.questions, 25);
+      if (!generated || !questions) throw lastError ?? new Error('AI Pack Forge could not create that pack.');
       const cleanName = String(generated.name || body.topic || 'AI Quiz Pack').trim().slice(0, 80) || 'AI Quiz Pack';
       const bank = createBank(db, account, limitsFor(account.plan), {
         name: cleanName,
