@@ -1,6 +1,18 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Account, ArenaTone, BankSummary, CombatFeedback, LeaderboardReport, MatchHistoryEntry, MatchSummary, PublicPlayer, QuestionPreview, ServerMessage, Snapshot, TournamentReport } from './types';
 
+declare global {
+  interface Window {
+    google?: { accounts: { id: {
+      initialize: (config: { client_id: string; callback: (response: { credential?: string }) => void }) => void;
+      renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+    } } };
+  }
+}
+
+type AuthResult = { account?: Account; authenticated?: boolean; canViewAnswers?: boolean; canManagePacks?: boolean; error?: string };
+type AiQuota = { used: number; limit: number; remaining: number; resetsAt: number };
+
 function createClientId() {
   if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID();
 
@@ -525,11 +537,11 @@ function AccountBadge({ account, publicBeta = false, authenticated = false, onSi
   onSignOut?: () => void;
   compact?: boolean;
 }) {
-  if (publicBeta && !authenticated) return <div className="beta-badge" title="Public beta access uses the paid-tier tournament limits"><span>BETA</span><small>50 PLAYER ACCESS</small>{onSignIn && <button type="button" onClick={onSignIn}>Sign in</button>}</div>;
+  if (publicBeta && !authenticated) return <div className="beta-badge" title="Public beta access"><span>BETA</span><small>50 PLAYER ACCESS</small>{onSignIn && <button type="button" onClick={onSignIn}>Sign in</button>}</div>;
   if (!account) return <button type="button" className="header-sign-in" onClick={onSignIn}>Sign in</button>;
   return <div className={`account-badge ${compact ? 'compact' : ''}`}>
     <span className="account-avatar" aria-hidden="true">{account.displayName.slice(0, 1).toUpperCase()}</span>
-    <span className="account-identity"><b>{account.displayName}</b><small>{account.isAdmin ? 'ADMIN · ' : ''}{account.plan} HOST</small></span>
+    <span className="account-identity"><b>{account.displayName}</b><small>{account.isAdmin ? 'ADMIN' : 'HOST'}</small></span>
     {onHost && <button type="button" onClick={onHost}>Host</button>}
     {onSignOut && <button type="button" className="account-sign-out" onClick={onSignOut}>Sign out</button>}
   </div>;
@@ -1094,6 +1106,9 @@ export function App() {
   const [selectedBankId, setSelectedBankId] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [googleClientId, setGoogleClientId] = useState('');
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const googleCallbackRef = useRef<(credential: string) => void>(() => {});
   const [bankName, setBankName] = useState('');
   const [bankDescription, setBankDescription] = useState('');
   const [bankFile, setBankFile] = useState<File>();
@@ -1109,6 +1124,7 @@ export function App() {
   const [deletingBankId, setDeletingBankId] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiQuota, setAiQuota] = useState<AiQuota | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [aiFile, setAiFile] = useState<{ name: string; contentBase64: string; size: number }>();
   const [editingBankId, setEditingBankId] = useState('');
@@ -1313,8 +1329,9 @@ export function App() {
     try {
       const configResponse = await fetch('/api/config', { cache: 'no-store' });
       if (!configResponse.ok) throw new Error('Game configuration is unavailable.');
-      const { websocketUrl, publicBeta: betaEnabled } = await configResponse.json() as { websocketUrl: string; publicBeta?: boolean };
+      const { websocketUrl, publicBeta: betaEnabled, googleClientId: googleId } = await configResponse.json() as { websocketUrl: string; publicBeta?: boolean; googleClientId?: string | null };
       setPublicBeta(Boolean(betaEnabled));
+      setGoogleClientId(googleId ?? '');
       const ws = new WebSocket(websocketUrl);
       socket.current = ws;
       connectionTimer.current = window.setTimeout(() => {
@@ -1355,12 +1372,12 @@ export function App() {
 
   useEffect(() => {
     connect();
-    void fetch('/api/me', { cache: 'no-store' }).then((response) => response.json()).then((result: { account: Account | null; publicBeta?: boolean; authenticated?: boolean; canViewAnswers?: boolean; canManagePacks?: boolean; aiEnabled?: boolean; aiModel?: string; isAdmin?: boolean }) => {
+    void fetch('/api/me', { cache: 'no-store' }).then((response) => response.json()).then((result: { account: Account | null; publicBeta?: boolean; authenticated?: boolean; canViewAnswers?: boolean; canManagePacks?: boolean; aiEnabled?: boolean; aiModel?: string; isAdmin?: boolean; aiQuota?: AiQuota | null }) => {
       setPublicBeta(Boolean(result.publicBeta));
       setAuthenticated(Boolean(result.authenticated));
       setCanViewAnswers(Boolean(result.canViewAnswers));
       setCanManagePacks(Boolean(result.canManagePacks));
-      setAiEnabled(Boolean(result.aiEnabled)); setIsAdmin(Boolean(result.isAdmin || result.account?.isAdmin)); if (result.aiModel) setAiModel(result.aiModel);
+      setAiEnabled(Boolean(result.aiEnabled)); setAiQuota(result.aiQuota ?? null); setIsAdmin(Boolean(result.isAdmin || result.account?.isAdmin)); if (result.aiModel) setAiModel(result.aiModel);
       if (result.account) {
         setAccount(result.account);
         void loadBanks();
@@ -1461,8 +1478,13 @@ export function App() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: loginEmail, password: loginPassword }),
     });
-    const result = await response.json() as { account?: Account; authenticated?: boolean; canViewAnswers?: boolean; canManagePacks?: boolean; error?: string };
+    const result = await response.json() as AuthResult;
     if (!response.ok || !result.account) return setError(result.error ?? 'Unable to sign in.');
+    await completeSignIn(result);
+  }
+
+  async function completeSignIn(result: AuthResult) {
+    if (!result.account) return;
     setAccount(result.account);
     setAuthenticated(Boolean(result.authenticated));
     setCanViewAnswers(Boolean(result.canViewAnswers));
@@ -1470,10 +1492,52 @@ export function App() {
     setIsAdmin(Boolean(result.account?.isAdmin));
     setLoginPassword('');
     await loadBanks();
-    try { const me = await (await fetch('/api/me', { cache: 'no-store' })).json() as { aiEnabled?: boolean; aiModel?: string; isAdmin?: boolean }; setAiEnabled(Boolean(me.aiEnabled)); setIsAdmin(Boolean(me.isAdmin)); if (me.aiModel) setAiModel(me.aiModel); } catch { /* AI flags refresh is best-effort */ }
+    try { const me = await (await fetch('/api/me', { cache: 'no-store' })).json() as { aiEnabled?: boolean; aiModel?: string; isAdmin?: boolean; aiQuota?: AiQuota | null }; setAiEnabled(Boolean(me.aiEnabled)); setAiQuota(me.aiQuota ?? null); setIsAdmin(Boolean(me.isAdmin)); if (me.aiModel) setAiModel(me.aiModel); } catch { /* AI flags refresh is best-effort */ }
     startHttpFallback();
     setMode('choose');
   }
+
+  async function signInWithGoogle(credential: string) {
+    setError('');
+    const response = await fetch('/api/auth/google', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential }),
+    });
+    const result = await response.json() as AuthResult;
+    if (!response.ok || !result.account) return setError(result.error ?? 'Unable to sign in with Google.');
+    await completeSignIn(result);
+  }
+  googleCallbackRef.current = (credential) => { void signInWithGoogle(credential); };
+
+  // Renders Google's official Sign in button (GIS) into the login form. The
+  // button returns an ID token, which the server verifies — no client secret
+  // or OAuth redirect is involved, and the button stays hidden until the
+  // server advertises a GOOGLE_CLIENT_ID via /api/config.
+  useEffect(() => {
+    if (mode !== 'login' || !googleClientId || !googleButtonRef.current) return;
+    const renderButton = () => {
+      if (!window.google || !googleButtonRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => { if (response.credential) googleCallbackRef.current(response.credential); },
+      });
+      googleButtonRef.current.replaceChildren();
+      const width = Math.min(400, Math.max(240, googleButtonRef.current.clientWidth || 320));
+      window.google.accounts.id.renderButton(googleButtonRef.current, { theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'center', width });
+    };
+    if (window.google) { renderButton(); return; }
+    let script = document.getElementById('google-gsi-client') as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.id = 'google-gsi-client';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+    script.addEventListener('load', renderButton);
+    return () => script?.removeEventListener('load', renderButton);
+  }, [mode, googleClientId]);
 
   async function signOut() {
     const currentTournament = snapshot?.tournament;
@@ -1500,7 +1564,7 @@ export function App() {
     setAccount(result.account ?? undefined);
     setAuthenticated(Boolean(result.authenticated));
     setCanViewAnswers(Boolean(result.canViewAnswers));
-    setCanManagePacks(Boolean(result.canManagePacks)); setIsAdmin(Boolean((result as { isAdmin?: boolean }).isAdmin || result.account?.isAdmin)); setAiEnabled(false);
+    setCanManagePacks(Boolean(result.canManagePacks)); setIsAdmin(Boolean((result as { isAdmin?: boolean }).isAdmin || result.account?.isAdmin)); setAiEnabled(false); setAiQuota(null);
     await loadBanks();
     setMode('choose');
   }
@@ -1513,14 +1577,15 @@ export function App() {
     try {
       const response = await fetch('/api/ai/generate-pack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: aiMode === 'topic' ? aiTopic : '', sourceFile: aiMode === 'pdf' ? aiFile : undefined, retention: packRetention }) });
       const raw = await response.text();
-      let result: { bank?: BankSummary; error?: string; model?: string } = {};
+      let result: { bank?: BankSummary; error?: string; model?: string; aiQuota?: AiQuota } = {};
       try { result = JSON.parse(raw) as typeof result; } catch {
         if (response.status === 413) { setAiProgress(0); setAiStage(0); setError('That PDF is too large for the Forge upload limit. Use a PDF under 4 MB.'); return; }
         if (response.status === 504 || response.status === 502) { setAiProgress(0); setAiStage(0); setError('The Forge took too long to respond. Try again, or use a shorter PDF.'); return; }
         if (response.status === 429) { setAiProgress(0); setAiStage(0); setError('Too many Forge requests right now. Wait a few minutes and try again.'); return; }
         setAiProgress(0); setAiStage(0); setError(`AI Pack Forge returned an unexpected response (${response.status}). Try again.`); return;
       }
-      if (!response.ok || !result.bank) { setAiProgress(0); setAiStage(0); setError(result.error ?? 'AI Pack Forge could not create that pack.'); return; }
+      if (!response.ok || !result.bank) { if (result.aiQuota) setAiQuota(result.aiQuota); setAiProgress(0); setAiStage(0); setError(result.error ?? 'AI Pack Forge could not create that pack.'); return; }
+      if (result.aiQuota) setAiQuota(result.aiQuota);
       setAiProgress(100); setAiStage(forgeStages.length - 1);
       await loadBanks(); setSelectedBankId(result.bank.id);
       await new Promise((resolve) => window.setTimeout(resolve, 500));
@@ -1581,7 +1646,7 @@ export function App() {
 
   async function submitBank(payload: Record<string, unknown>) {
     if (!canManagePacks) {
-      setError('Creating and importing challenge packs requires a signed-in paid host during public beta.');
+      setError('Sign in to create and import challenge packs.');
       return false;
     }
     setSavingBank(true);
@@ -1763,7 +1828,7 @@ export function App() {
         <button className="choice" onClick={() => setMode('challenge')}><span>⚔</span><b>Challenge a streak</b><small>Queue up and take the next rival slot</small></button>
       </div>}
       {mode === 'choose' && <section className="streak-panel"><FighterAvatar seed={avatar} /><span>👤 {name || 'Guest fighter'}</span><strong>Finish a Solo Arcade run and your name lands on the leaderboard below — tagged with your session code.</strong></section>}
-      {mode === 'choose' && isAdmin && authenticated && <section className="board-card ai-home"><div className="section-title"><div><div className="eyebrow">ADMIN TESTING · META MUSE SPARK</div><h2>AI Pack Forge</h2></div><span>{aiEnabled ? 'AI online' : 'AI key needed'}</span></div><p className="muted">Signed in as admin: type a custom topic or upload a lesson PDF and Meta AI will forge a checked, playable quiz pack.</p><button type="button" className="action" onClick={() => { setBankManagerView('ai'); setMode('banks'); playSfx('click'); }}>Open AI Pack Forge ✦</button></section>}
+      {mode === 'choose' && isAdmin && authenticated && <section className="board-card ai-home"><div className="section-title"><div><div className="eyebrow">ADMIN TESTING · META MUSE SPARK</div><h2>AI Pack Forge</h2></div><span>{aiQuota ? aiQuota.remaining + '/' + aiQuota.limit + ' left this week' : aiEnabled ? 'AI online' : 'AI key needed'}</span></div><p className="muted">Signed in as admin: type a custom topic or upload a lesson PDF and Meta AI will forge a checked, playable quiz pack.</p><button type="button" className="action" onClick={() => { setBankManagerView('ai'); setMode('banks'); playSfx('click'); }}>Open AI Pack Forge ✦</button></section>}
       {mode === 'choose' && !(isAdmin && authenticated) && <section className="board-card ai-home"><div className="section-title"><div><div className="eyebrow">READY-MADE LEARNING LIBRARY</div><h2>Start learning in one click</h2></div><span>3 packs · 130+ questions</span></div><p className="muted">Bato Bato Pick, Information Security Awareness, and AWS Cloud Practitioner Practice - every quiz pack includes teaching explanations. Pick one in Solo Arcade or host a tournament for your class.</p><button type="button" className="action" onClick={() => { setMode('solo'); playSfx('click'); }}>Play Solo Arcade</button></section>}
       {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">LIVE · OPEN TO CHALLENGERS</div><h2>Streaks you can challenge right now</h2></div><span>{openChallenges.length} live</span></div>{openChallenges.length ? <div className="open-list">{openChallenges.map((open) => <article key={open.code}><FighterAvatar seed={open.playerAvatar} /><div><b>{open.playerName} <small>#{open.code}</small></b><span>🎒 {open.bankName} · 🔥 streak {open.streak} · rival {open.rivalIndex}/{open.ladderLength}</span></div><button type="button" onClick={() => { setSelectedBankId(open.bankId); setMode('challenge'); playSfx('click'); }}>Challenge ⚔</button></article>)}</div> : <p className="muted">No streak is open to challengers at the moment. Start a Solo Arcade run with “Allow challenges” to appear here.</p>}</section>}
       {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">SOLO LEADERBOARD</div><h2>Top streaks</h2></div><span>Updated live</span></div>{soloLeaderboard.length ? <ol className="leaderboard-list">{soloLeaderboard.slice(0, 5).map((entry, index) => <li key={entry.code}><b>#{index + 1}</b><FighterAvatar seed={entry.avatar} /><span className="board-name">{entry.name} <small>#{entry.code}</small></span><span className="board-bank">{entry.bankName}</span><strong>🔥 {entry.streak}</strong><em>{entry.result === 'LADDER_CLEARED' ? '👑 Cleared' : entry.result === 'CHALLENGED' ? '⚔ Challenged' : entry.result === 'FORFEIT' ? '🏳 Forfeited' : '💥 Ended'}</em></li>)}</ol> : <p className="muted">No finished streaks yet — be the first name on this board.</p>}</section>}
@@ -1824,6 +1889,7 @@ export function App() {
         <label>Email<input autoFocus type="email" autoComplete="username" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} placeholder="host@example.com" /></label>
         <label>Password<input type="password" autoComplete="current-password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} /></label>
         <button className="action" disabled={!connected}>Sign in</button>
+        {googleClientId && <><div className="auth-divider" aria-hidden="true"><span>or</span></div><div ref={googleButtonRef} className="google-signin" /></>}
       </form>}
       {mode === 'host' && <div className="panel entry-form">
         <button type="button" className="back setup-back" onClick={() => setMode('choose')}>← Back to role selection</button>
@@ -1842,11 +1908,11 @@ export function App() {
         {bankManagerView === 'library' && <>
           <div className="manager-heading"><div><div className="eyebrow">YOUR QUESTION LIBRARY</div><h2>Choose how you want to build</h2><p>Create questions one at a time, or bring in a ready-made file.</p></div><span>{customBankCount}/{account?.limits.banks ?? 0} custom packs</span></div>
           <div className="creation-choices">
-            <button type="button" className="creation-card primary" disabled={!canManagePacks || customBankCount >= (account?.limits.banks ?? 0)} onClick={() => setBankManagerView('create')}><span>＋</span><b>Create in Zerosum</b><small>{canManagePacks ? 'A guided editor for questions and answers' : 'Paid beta account required'}</small></button>
-            <button type="button" className="creation-card" disabled={!canManagePacks || customBankCount >= (account?.limits.banks ?? 0)} onClick={() => setBankManagerView('import')}><span>⇧</span><b>Import a file</b><small>{canManagePacks ? 'Upload a JSON or CSV question pack' : 'Paid beta account required'}</small></button>
-            {isAdmin && authenticated && <button type="button" className="creation-card ai-card" onClick={() => setBankManagerView('ai')}><span>✦</span><b>AI Pack Forge</b><small>{aiEnabled ? 'Meta ' + aiModel + ' turns a custom topic or PDF into a playable pack' : 'Powered by Meta Muse Spark - server key needed to activate'}</small></button>}
+            <button type="button" className="creation-card primary" disabled={!canManagePacks || customBankCount >= (account?.limits.banks ?? 0)} onClick={() => setBankManagerView('create')}><span>＋</span><b>Create in Zerosum</b><small>{canManagePacks ? 'A guided editor for questions and answers' : 'Sign in required'}</small></button>
+            <button type="button" className="creation-card" disabled={!canManagePacks || customBankCount >= (account?.limits.banks ?? 0)} onClick={() => setBankManagerView('import')}><span>⇧</span><b>Import a file</b><small>{canManagePacks ? 'Upload a JSON or CSV question pack' : 'Sign in required'}</small></button>
+            {authenticated && <button type="button" className="creation-card ai-card" onClick={() => setBankManagerView('ai')}><span>✦</span><b>AI Pack Forge</b><small>{aiEnabled ? (aiQuota ? aiQuota.remaining + ' of ' + aiQuota.limit + ' Forge packs left this week' : 'Meta ' + aiModel + ' turns a topic or PDF into a playable pack') : 'Powered by Meta Muse Spark - server key needed to activate'}</small></button>}
           </div>
-          {publicBeta && <p className="limit-note">{canManagePacks ? 'Your paid test account can create and import private packs and preview answer keys.' : 'Sign in with a paid test account to create private packs and preview answer keys; you can still use every included pack.'}</p>}
+          {publicBeta && <p className="limit-note">{canManagePacks ? 'Every signed-in host can create, import and forge private packs. Default packs are included for everyone.' : 'Sign in with Google or email to create private packs; you can still use every included pack.'}</p>}
           <div className="library-heading"><h3>Your challenge packs</h3><small>Select a pack to use it in your next tournament.</small></div>
           <div className="pack-library-grid">{banks.map((bank) => { const ownPack = Boolean(bank.isSample) || bank.ownerId === account?.id; const canDelete = !bank.isSample && (isAdmin || ownPack); const isSelected = selectedBankId === bank.id; return <article className={isSelected ? 'pack-library-card selected' : 'pack-library-card'} key={bank.id}>
             <button type="button" className="pack-library-main" aria-pressed={isSelected} onClick={() => { if (ownPack) { setSelectedBankId(bank.id); setMode('host'); } else void openPackEditor(bank.id); }}>
@@ -1855,9 +1921,9 @@ export function App() {
               <span className="pack-card-meta"><span>{bank.gameMode === 'RPS' ? 'Player vs player' : `${bank.questionCount} questions`}</span><span>{packRetentionLabel(bank)}</span>{!ownPack && bank.ownerEmail ? <span>by {bank.ownerEmail}</span> : null}</span>
               <span className="pack-card-state">{ownPack ? (isSelected ? 'Selected for next tournament' : 'Use this pack') : 'View to manage'}</span>
             </button>
-            {(bank.gameMode !== 'RPS' && (isAdmin || canManagePacks)) || canDelete ? <div className="pack-library-actions">{bank.gameMode !== 'RPS' && (isAdmin || canManagePacks) && <button type="button" className="pack-edit-btn" disabled={loadingBank} onClick={() => void openPackEditor(bank.id)}>View / Edit</button>}{canDelete && <button type="button" className="pack-delete-btn" disabled={deletingBankId === bank.id} onClick={() => void deletePack(bank)}>{deletingBankId === bank.id ? 'Deleting\u2026' : 'Delete'}</button>}</div> : null}
+            {authenticated && ((bank.gameMode !== 'RPS' && (isAdmin || canManagePacks)) || canDelete) ? <div className="pack-library-actions">{bank.gameMode !== 'RPS' && (isAdmin || canManagePacks) && <button type="button" className="pack-edit-btn" disabled={loadingBank} onClick={() => void openPackEditor(bank.id)}>View / Edit</button>}{canDelete && <button type="button" className="pack-delete-btn" disabled={deletingBankId === bank.id} onClick={() => void deletePack(bank)}>{deletingBankId === bank.id ? 'Deleting\u2026' : 'Delete'}</button>}</div> : null}
           </article>; })}</div>
-          {customBankCount >= (account?.limits.banks ?? 0) && <p className="limit-note">You have used all custom pack slots on this plan. Included samples remain available.</p>}
+          {customBankCount >= (account?.limits.banks ?? 0) && <p className="limit-note">You have used all custom pack slots for this account. Included default packs remain available.</p>}
           {isAdmin && authenticated && <><div className="library-heading"><h3>Admin · pack visibility</h3><small>Hidden packs disappear for students and guests, but stay visible to you.</small></div><div className="bank-summary friendly admin-packs">{[...new Map(banks.map((bank) => [bank.name, bank])).values()].map((bank) => <article className={bank.hidden ? 'admin-pack-card is-hidden' : 'admin-pack-card'} key={bank.name}><span className="pack-icon">{bank.gameMode === 'RPS' ? '✊' : bank.isSample ? '★' : '✦'}</span><span><b>{bank.name}</b><small>{bank.gameMode === 'RPS' ? 'Player-vs-player mode' : bank.questionCount + ' questions'} · {bank.hidden ? 'Hidden from students' : 'Visible to everyone'}</small></span><button type="button" className={bank.hidden ? 'pack-toggle show' : 'pack-toggle'} onClick={async () => { const response = await fetch('/api/admin/packs/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: bank.name, hidden: !bank.hidden }) }); if (response.ok) { await loadBanks(); playSfx('click'); } else setError('Could not update pack visibility.'); }}>{bank.hidden ? '👁 Show' : 'Hide'}</button></article>)}</div></>}
         </>}
 
@@ -1880,8 +1946,9 @@ export function App() {
           {bankManagerView === 'edit' ? <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Back to packs</button><button type="button" className="secondary-action" disabled={savingBank} onClick={(event) => void saveEditedBank(event)}>{savingBank ? 'Saving…' : 'Save changes only'}</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save & use this pack ⚔'}</button></div> : <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save challenge pack'}</button></div>}
         </form>}
 
-        {bankManagerView === 'ai' && isAdmin && authenticated && <form className="pack-import ai-forge" onSubmit={generateAiPack}>
-          <div className="manager-heading"><div><div className="eyebrow">AI PACK FORGE ? POWERED BY META MUSE SPARK</div><h2>Turn a lesson into a battle</h2><p>Choose one: type a custom topic or upload a lesson PDF. ZeroSum Sensei writes curriculum-friendly questions with teaching explanations, checked by Zerosum before they can be played.</p></div><span>{aiEnabled ? 'AI online' : 'AI key needed'}</span></div>
+        {bankManagerView === 'ai' && authenticated && <form className="pack-import ai-forge" onSubmit={generateAiPack}>
+          <div className="manager-heading"><div><div className="eyebrow">AI PACK FORGE ? POWERED BY META MUSE SPARK</div><h2>Turn a lesson into a battle</h2><p>Choose one: type a custom topic or upload a lesson PDF. ZeroSum Sensei writes curriculum-friendly questions with teaching explanations, checked by Zerosum before they can be played.</p></div><span>{aiQuota ? aiQuota.remaining + '/' + aiQuota.limit + ' left this week' : aiEnabled ? 'AI online' : 'AI key needed'}</span></div>
+          {aiQuota && aiQuota.remaining <= 0 && <p className="limit-note">Weekly Forge limit reached ({aiQuota.limit} packs per week). Your quota resets on {new Date(aiQuota.resetsAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.</p>}
           {!aiEnabled && <p className="limit-note">The forge is built and ready - it activates the moment a Meta Model API key (MODEL_API_KEY from dev.meta.ai) is added on the server. Ready-made packs below still work right now.</p>}
           <div className="ai-identity"><span className="ai-identity-mark">{'\u2726'}</span><div><b>ZeroSum Sensei</b><small>Quiz &amp; learning specialist - powered by Meta Muse Spark. I only build educational quizzes - give me a custom topic or a lesson PDF. Explicit topics are prohibited.</small></div><em>Scope locked</em></div>
           <div className="ai-mode-switch" role="tablist" aria-label="Forge input mode">
@@ -1902,7 +1969,7 @@ export function App() {
             <ol className="forge-steps">{forgeStages.map((stage, index) => <li key={stage} className={index < aiStage ? 'done' : index === aiStage ? 'active' : ''}>{index < aiStage ? '\u2713' : index + 1} {stage}</li>)}</ol>
             <small>{aiMode === 'pdf' ? 'Your PDF is read in server memory only and is deleted as soon as the pack is created.' : 'ZeroSum Sensei is working - generated questions are checked before they can be played.'}</small>
           </div>}
-          <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={aiBusy || !aiEnabled}>{aiBusy ? 'Forging with Meta AI...' : 'Forge my pack ' + '\u2726'}</button></div>
+          <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={aiBusy || !aiEnabled || (aiQuota?.remaining ?? 1) <= 0}>{aiBusy ? 'Forging with Meta AI...' : 'Forge my pack ' + '\u2726'}</button></div>
         </form>}
 
         {canManagePacks && bankManagerView === 'import' && <form className="pack-import" onSubmit={importBank}>
@@ -1913,7 +1980,7 @@ export function App() {
           <label>Description <small>Optional</small><input maxLength={300} value={bankDescription} onChange={(event) => setBankDescription(event.target.value)} placeholder="What will players practice?" /></label>
           <label>Pack storage<select value={packRetention} onChange={(event) => setPackRetention(event.target.value as 'TEMPORARY' | 'PERMANENT')}><option value="TEMPORARY">Temporary - auto-deletes after 30 days</option><option value="PERMANENT">Permanent - keep in my account</option></select></label>
           <label className="file-drop"><span>Choose your JSON or CSV file</span><small>{bankFile ? bankFile.name : 'Maximum file size: 1 MB'}</small><input type="file" accept=".json,.csv,application/json,text/csv" onChange={(event) => setBankFile(event.target.files?.[0])} /></label>
-          <p className="limit-note">Your {account?.plan.toLowerCase()} plan allows {account?.limits.questionsPerBank} questions per custom pack and {account?.limits.totalQuestions} custom questions total.</p>
+          <p className="limit-note">Your host account allows {account?.limits.questionsPerBank} questions per custom pack and {account?.limits.totalQuestions} custom questions total.</p>
           <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={savingBank}>{savingBank ? 'Checking…' : 'Check and import'}</button></div>
         </form>}
       </section>}
@@ -1944,9 +2011,9 @@ export function App() {
       <section><div className="section-title"><h2>{tournament?.phase === 'LOBBY' ? 'Players in lobby' : 'Live matches'}</h2><span>Updates automatically</span></div>
         {tournament?.phase === 'LOBBY' ? <div className="roster">{snapshot?.players.map((player, index) => <div key={player.id}><span>{index + 1}</span><PlayerAvatar player={player} /><span className="roster-name">{player.name}</span><strong>{hpDisplay(player.hp)}</strong></div>)}</div> : <div className="match-grid">{snapshot?.matches.map((match) => <MatchCard key={match.id} match={match} players={snapshot.players} />)}</div>}
       </section>
-      <section className="host-insights"><div><div className="eyebrow">INSTRUCTOR REVIEW</div><h2>Progress & learning tools</h2><p>{canViewAnswers ? 'Your paid host account can review answers and explanations throughout the tournament.' : 'Answer previews require a signed-in paid host during public beta.'}</p></div><div className="insight-actions"><button className="insight-button" disabled={!snapshot?.matchHistory?.length} onClick={() => setProgressionOpen(true)}><span>⇢</span><b>View progression</b><small>{snapshot?.matchHistory?.length ?? 0} matches tracked</small></button>{canViewAnswers && <button className="insight-button" disabled={!snapshot?.reviewQuestions?.length} onClick={() => setReviewOpen(true)}><span>✓</span><b>Review used questions</b><small>{snapshot?.reviewQuestions?.length ?? 0} unique questions</small></button>}</div></section>
+      <section className="host-insights"><div><div className="eyebrow">INSTRUCTOR REVIEW</div><h2>Progress & learning tools</h2><p>{canViewAnswers ? 'Your host account can review answers and explanations throughout the tournament.' : 'Sign in as host to review answers and explanations.'}</p></div><div className="insight-actions"><button className="insight-button" disabled={!snapshot?.matchHistory?.length} onClick={() => setProgressionOpen(true)}><span>⇢</span><b>View progression</b><small>{snapshot?.matchHistory?.length ?? 0} matches tracked</small></button>{canViewAnswers && <button className="insight-button" disabled={!snapshot?.reviewQuestions?.length} onClick={() => setReviewOpen(true)}><span>✓</span><b>Review used questions</b><small>{snapshot?.reviewQuestions?.length ?? 0} unique questions</small></button>}</div></section>
       {tournament?.phase === 'LOBBY' && snapshot?.questionBank && <section className="bank-section"><details><summary><span>{tournament.bankName} · {tournament.gameMode === 'RPS' ? 'move rules' : 'answer key'}</span><small>{snapshot.questionBankInfo?.eligibleQuestions ?? snapshot.questionBank.length} playable challenges · host only</small></summary><div className="bank-tools"><input value={questionSearch} onChange={(event) => setQuestionSearch(event.target.value)} placeholder="Search challenges or answers…"/><span>{filteredQuestions.length} shown</span></div><div className="bank-list">{filteredQuestions.map((question) => <article key={question.id}><header><b>{question.id.slice(0, 8)}</b><span>{tournament.gameMode === 'RPS' ? 'Player choice' : questionLabel(question)}</span><em>{question.difficulty}</em></header><p>{question.text}</p><ol type="A">{question.options.map((option, index) => <li className={tournament.gameMode !== 'RPS' && index === question.correctIndex ? 'correct' : ''} key={option}>{option}{tournament.gameMode !== 'RPS' && index === question.correctIndex && <strong> ✓ Correct</strong>}</li>)}</ol><small>{question.explanation}</small></article>)}</div></details></section>}
-      <section className="event-section"><div className="section-title"><div><h2>Event log {canViewAnswers ? '& class review' : ''}</h2><span>{canViewAnswers ? 'Paid hosts can review the questions and answers used during the tournament' : 'Gameplay events are recorded without revealing challenge content'}</span></div><button className="log-download" onClick={downloadReport}>Download HTML report</button></div>
+      <section className="event-section"><div className="section-title"><div><h2>Event log {canViewAnswers ? '& class review' : ''}</h2><span>{canViewAnswers ? 'Hosts can review the questions and answers used during the tournament' : 'Gameplay events are recorded without revealing challenge content'}</span></div><button className="log-download" onClick={downloadReport}>Download HTML report</button></div>
         <div className="event-log">{snapshot?.events?.length ? snapshot.events.map((event) => <div key={event.id}><time>{new Date(event.at).toLocaleTimeString()}</time><span className="event-kind">{event.kind.replaceAll('_', ' ')}</span><span>{typeof event.details?.questionId === 'string' && <b className="event-question">{event.details.questionId}</b>}{event.message}</span></div>) : <p className="muted">Tournament events will appear here.</p>}</div>
       </section>
       {progressionOpen && <div className="dashboard-modal" role="dialog" aria-modal="true" aria-label="Tournament progression" onClick={() => setProgressionOpen(false)}><section className="dashboard-modal-panel" onClick={(event) => event.stopPropagation()}><button className="modal-close" aria-label="Close tournament progression" onClick={() => setProgressionOpen(false)}>×</button><TournamentProgression matches={snapshot?.matchHistory ?? []} players={snapshot?.players ?? []} championId={tournament?.championId} /></section></div>}

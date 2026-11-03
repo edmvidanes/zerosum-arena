@@ -7,9 +7,9 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { openDatabase } from './database.js';
 import { ZerosumGame } from './game.js';
 import { log } from './logger.js';
-import { accountFromCookie, clearSessionCookie, ensureSeedAccounts, isAdminAccount, limitsFor, login, logout, publicAccount, sessionCookie } from './auth.js';
+import { accountFromCookie, clearSessionCookie, googleClientId, isAdminAccount, limitsFor, login, loginWithGoogle, logout, publicAccount, sessionCookie, verifyGoogleIdToken } from './auth.js';
 import { cleanupExpiredBanks, createBank, deleteBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload, updateBank } from './banks.js';
-import { aiEnabled, AI_MODEL, generateQuizPack } from './ai.js';
+import { aiEnabled, AI_MODEL, generateQuizPack, getForgeQuota, recordForgeUse } from './ai.js';
 import { excerptForModel, extractDocumentText } from './document.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -25,25 +25,26 @@ const port = Number(process.env.PORT ?? 3000);
 const host = process.env.HOST ?? '127.0.0.1';
 
 const db = openDatabase(dataDir);
-ensureSeedAccounts(db);
 const publicBetaMode = String(process.env.PUBLIC_BETA_MODE ?? '').toLowerCase() === 'true';
+// Guests (logged out) borrow the earliest host account so they can open a
+// lobby with the shared default packs. Guests never get management rights:
+// every write route below requires an authenticated session.
 const betaAccount = publicBetaMode
-  ? db.prepare(`SELECT * FROM accounts WHERE plan='PAID' ORDER BY created_at LIMIT 1`).get()
+  ? db.prepare(`SELECT * FROM accounts ORDER BY created_at LIMIT 1`).get()
   : undefined;
-if (publicBetaMode && !betaAccount) throw new Error('PUBLIC_BETA_MODE requires a seeded PAID account.');
 const requestIdentity = (cookieHeader = '') => {
   const authenticatedAccount = accountFromCookie(db, cookieHeader);
   return {
     account: authenticatedAccount ?? (publicBetaMode ? betaAccount : undefined),
     authenticated: Boolean(authenticatedAccount),
-    canViewAnswers: Boolean(authenticatedAccount?.plan === 'PAID'),
-    canManagePacks: Boolean(authenticatedAccount && (!publicBetaMode || authenticatedAccount.plan === 'PAID')),
+    canViewAnswers: Boolean(authenticatedAccount),
+    canManagePacks: Boolean(authenticatedAccount),
     isAdmin: Boolean(authenticatedAccount && isAdminAccount(authenticatedAccount)),
   };
 };
 const browserAccount = (account, authenticated = false) => {
   const safe = publicAccount(account);
-  return publicBetaMode && safe && !authenticated ? { ...safe, email: 'beta@zerosum.local', displayName: 'Beta Host' } : safe;
+  return publicBetaMode && safe && !authenticated ? { ...safe, email: 'guest@zerosum.local', displayName: 'Guest Host' } : safe;
 };
 const awsSampleBank = JSON.parse(fs.readFileSync(awsSampleBankPath, 'utf8'));
 // Pack library is intentionally lean: only these three included packs are seeded.
@@ -98,7 +99,7 @@ function securityHeaders(response) {
   response.setHeader('X-Frame-Options', 'DENY');
   response.setHeader('Referrer-Policy', 'same-origin');
   response.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  response.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data:");
+  response.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' https://accounts.google.com; frame-src https://accounts.google.com; connect-src 'self' https://accounts.google.com ws: wss:; img-src 'self' data: https://*.googleusercontent.com;");
 }
 
 function sendJson(response, status, body, headers = {}) {
@@ -150,7 +151,7 @@ const server = http.createServer(async (request, response) => {
     } catch { return sendJson(response, 403, { error: 'Invalid request origin.' }); }
   }
   if (request.method === 'GET' && url.pathname === '/api/config') {
-    return sendJson(response, 200, { aiEnabled: aiEnabled(), aiModel: AI_MODEL, websocketUrl: `${secure ? 'wss' : 'ws'}://${request.headers.host}/ws`, publicBeta: publicBetaMode });
+    return sendJson(response, 200, { aiEnabled: aiEnabled(), aiModel: AI_MODEL, websocketUrl: `${secure ? 'wss' : 'ws'}://${request.headers.host}/ws`, publicBeta: publicBetaMode, googleClientId: googleClientId() || null });
   }
   if (request.method === 'GET' && url.pathname === '/api/health') {
     const activeTournaments = db.prepare(`SELECT COUNT(*) AS count FROM tournaments WHERE phase NOT IN ('COMPLETE', 'CANCELLED')`).get().count;
@@ -162,7 +163,7 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'GET' && url.pathname === '/api/me') return sendJson(response, 200, {
     account: browserAccount(account, identity.authenticated) ?? null,
     publicBeta: publicBetaMode, authenticated: identity.authenticated,
-    canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks, isAdmin: identity.isAdmin, aiEnabled: aiEnabled() && identity.isAdmin, aiModel: AI_MODEL,
+    canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks, isAdmin: identity.isAdmin, aiEnabled: aiEnabled() && identity.authenticated, aiModel: AI_MODEL, aiQuota: identity.authenticated && account ? getForgeQuota(db, account.id) : null,
   });
   if (request.method === 'GET' && url.pathname === '/api/solo/leaderboard') {
     const entries = db.prepare('SELECT code, name, avatar, bank_name AS bankName, streak, ladder_length AS ladderLength, result, ended_at AS endedAt FROM solo_leaderboard WHERE streak >= 2 AND result != \'FORFEIT\' ORDER BY streak DESC, ended_at DESC LIMIT 5').all();
@@ -208,8 +209,8 @@ const server = http.createServer(async (request, response) => {
     });
   }
   if (request.method === 'GET' && url.pathname.startsWith('/api/banks/')) {
-    if (!account) return sendJson(response, 401, { error: 'Sign in to view challenge packs.' });
-    if (publicBetaMode && !identity.canViewAnswers && !identity.isAdmin) return sendJson(response, 403, { error: 'Question previews require a signed-in paid host during public beta.' });
+    if (!identity.authenticated || !account) return sendJson(response, 401, { error: 'Sign in to view challenge packs.' });
+    // Any signed-in host may preview packs they own and the shared default packs (enforced in getBank).
     try { return sendJson(response, 200, { bank: getBank(db, account.id, url.pathname.split('/').pop(), identity.isAdmin) }); }
     catch (error) { return sendJson(response, 404, { error: error.message }); }
   }
@@ -223,8 +224,28 @@ const server = http.createServer(async (request, response) => {
       const result = login(db, body.email, body.password);
       loginAttempts.delete(remote);
       return sendJson(response, 200, {
-        account: result.account, authenticated: true, canViewAnswers: result.account.plan === 'PAID',
-        canManagePacks: !publicBetaMode || result.account.plan === 'PAID',
+        account: result.account, authenticated: true, canViewAnswers: true,
+        canManagePacks: true,
+      }, { 'Set-Cookie': sessionCookie(result.token, secure) });
+    } catch (error) {
+      attempt.count += 1; loginAttempts.set(remote, attempt);
+      return sendJson(response, 401, { error: error.message });
+    }
+  }
+  if (request.method === 'POST' && url.pathname === '/api/auth/google') {
+    if (!googleClientId()) return sendJson(response, 503, { error: 'Google sign-in is not configured on this server.' });
+    const remote = clientAddress(request);
+    const attempt = loginAttempts.get(remote) ?? { count: 0, resetAt: Date.now() + 15 * 60 * 1000 };
+    if (Date.now() > attempt.resetAt) Object.assign(attempt, { count: 0, resetAt: Date.now() + 15 * 60 * 1000 });
+    if (attempt.count >= 10) return sendJson(response, 429, { error: 'Too many sign-in attempts. Try again later.' });
+    try {
+      const body = await readJson(request);
+      const profile = await verifyGoogleIdToken(body.credential);
+      const result = loginWithGoogle(db, profile);
+      loginAttempts.delete(remote);
+      return sendJson(response, 200, {
+        account: result.account, authenticated: true, canViewAnswers: true,
+        canManagePacks: true,
       }, { 'Set-Cookie': sessionCookie(result.token, secure) });
     } catch (error) {
       attempt.count += 1; loginAttempts.set(remote, attempt);
@@ -247,8 +268,8 @@ const server = http.createServer(async (request, response) => {
     } catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
   if (request.method === 'PUT' && url.pathname.startsWith('/api/banks/')) {
-    if (!account) return sendJson(response, 401, { error: 'Sign in to edit challenge packs.' });
-    if (!identity.canManagePacks && !identity.isAdmin) return sendJson(response, 403, { error: 'Editing challenge packs requires a signed-in paid host during public beta.' });
+    if (!identity.authenticated || !account) return sendJson(response, 401, { error: 'Sign in to edit challenge packs.' });
+    if (!identity.canManagePacks && !identity.isAdmin) return sendJson(response, 403, { error: 'Sign in to edit challenge packs.' });
     try {
       const body = await readJson(request, 256 * 1024);
       const bank = updateBank(db, account, identity.isAdmin, url.pathname.split('/').pop(), body);
@@ -264,7 +285,7 @@ const server = http.createServer(async (request, response) => {
   }
   if (request.method === 'POST' && url.pathname === '/api/banks/import') {
     if (!account) return sendJson(response, 401, { error: 'Sign in to import challenge packs.' });
-    if (!identity.canManagePacks) return sendJson(response, 403, { error: 'Creating and importing challenge packs requires a signed-in paid host during public beta.' });
+    if (!identity.canManagePacks) return sendJson(response, 403, { error: 'Sign in to create and import challenge packs.' });
     try {
       const body = await readJson(request, 1100 * 1024);
       const bank = createBank(db, account, limitsFor(account.plan), body.content ? { ...parseBankUpload(body), retention: body.retention } : body);
@@ -272,12 +293,13 @@ const server = http.createServer(async (request, response) => {
     } catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
   if (request.method === 'POST' && url.pathname === '/api/ai/generate-pack') {
-    if (!identity.authenticated) return sendJson(response, 401, { error: 'Sign in with the admin account to use AI Pack Forge.' });
-    if (!identity.isAdmin) return sendJson(response, 403, { error: 'AI Pack Forge is in admin testing right now. It will open to more teachers after validation.' });
+    if (!identity.authenticated || !account) return sendJson(response, 401, { error: 'Sign in to use AI Pack Forge.' });
     if (!allowAttempt(tournamentCreationAttempts, 'ai:' + clientAddress(request), 6, 20 * 60 * 1000)) return sendJson(response, 429, { error: 'Too many AI requests from this network. Try again in a few minutes.' });
     try {
       const body = await readJson(request, 6 * 1024 * 1024);
       cleanupExpiredBanks(db);
+      const quota = getForgeQuota(db, account.id);
+      if (quota.remaining <= 0) return sendJson(response, 429, { error: `AI Pack Forge weekly limit reached: ${quota.limit} packs per week. Your quota resets on ${new Date(quota.resetsAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.`, code: 'AI_WEEKLY_LIMIT', aiQuota: quota });
       const ownedPacks = db.prepare('SELECT COUNT(*) AS count FROM question_banks WHERE owner_id=? AND is_sample=0').get(account.id).count;
       const packLimit = Math.min(limitsFor(account.plan).banks, 20);
       if (ownedPacks >= packLimit) return sendJson(response, 400, { error: `Pack limit reached: each account can keep up to ${packLimit} created packs. Delete an old pack to make room.` });
@@ -310,7 +332,7 @@ const server = http.createServer(async (request, response) => {
         questions,
         retention: body.retention,
       });
-      return sendJson(response, 201, { bank, model: AI_MODEL });
+      return sendJson(response, 201, { bank, model: AI_MODEL, aiQuota: recordForgeUse(db, account.id) });
     } catch (error) { return sendJson(response, error.code === 'AI_NOT_CONFIGURED' ? 503 : 400, { error: error.message, code: error.code ?? 'AI_ERROR' }); }
   }
   if (request.method === 'POST' && ['/api/action', '/api/sync'].includes(url.pathname)) {

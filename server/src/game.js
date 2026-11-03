@@ -98,7 +98,7 @@ export class ZerosumGame {
 
   hostCanViewQuestions(ws, tournament = this.tournament(ws.session?.code)) {
     if (!this.hideHostQuestions) return true;
-    return Boolean(ws.canViewAnswers && ws.account?.plan === 'PAID' && ws.account.id === tournament.owner_id);
+    return Boolean(ws.canViewAnswers && ws.account && ws.account.id === tournament.owner_id);
   }
 
   hostSnapshot(ws, code) {
@@ -166,10 +166,10 @@ export class ZerosumGame {
     const configuredSeconds = questionSeconds(typeof settings === 'object' ? settings.questionSeconds : 20);
     const configuredTone = arenaTone(typeof settings === 'object' ? settings.arenaTone : undefined);
     const bankId = String(settings.bankId ?? '');
-    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND owner_id=? AND (expires_at IS NULL OR expires_at>?)').get(bankId, ws.account.id, Date.now());
+    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND (is_sample=1 OR owner_id=?) AND (expires_at IS NULL OR expires_at>?)').get(bankId, ws.account.id, Date.now());
     if (!bank) throw new Error('Select one of your challenge packs.');
     if (ws.restrictToSampleBanks && !bank.is_sample) throw new Error('Anonymous beta hosts can use included challenge packs only.');
-    const maxPlayers = limitsFor(ws.account.plan).players;
+    const maxPlayers = limitsFor().players;
     const hostPlay = Boolean(settings.hostPlay);
     if (hostPlay && process.env.ENABLE_HOST_PLAY === 'false') throw new Error('Host play is not enabled on this server.');
     let code;

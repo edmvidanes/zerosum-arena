@@ -126,7 +126,6 @@ export interface Account {
   id: string;
   email: string;
   displayName: string;
-  plan: 'FREE' | 'PAID';
   isAdmin?: boolean;
   limits: PlanLimits;
 }

@@ -41,7 +41,7 @@ export function openDatabase(dataDir) {
     CREATE INDEX IF NOT EXISTS idx_events_tournament ON events(code, at DESC);
     CREATE TABLE IF NOT EXISTS accounts (
       id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL,
-      plan TEXT NOT NULL CHECK(plan IN ('FREE','PAID')), password_salt TEXT NOT NULL,
+      plan TEXT NOT NULL DEFAULT 'HOST' CHECK(plan IN ('HOST')), password_salt TEXT NOT NULL,
       password_hash TEXT NOT NULL, created_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS sessions (
@@ -49,6 +49,38 @@ export function openDatabase(dataDir) {
       created_at INTEGER NOT NULL, FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+  `);
+  // Google sign-in links an account to its Google subject id. Added as a
+  // migration so existing databases keep their accounts and sessions.
+  const accountColumns = db.prepare(`PRAGMA table_info(accounts)`).all().map((column) => column.name);
+  if (!accountColumns.includes('google_sub')) db.exec(`ALTER TABLE accounts ADD COLUMN google_sub TEXT`);
+  // Account tiers were removed: every host is equal. Rebuild legacy account
+  // tables (which only allowed the old tier values) with the single 'HOST'
+  // value, preserving accounts, Google links and sessions.
+  const accountTableSql = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='accounts'`).get()?.sql ?? '';
+  if (accountTableSql && !accountTableSql.includes('HOST')) {
+    db.pragma('foreign_keys = OFF');
+    try {
+      db.transaction(() => {
+        db.exec(`CREATE TABLE accounts_new (
+          id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL,
+          plan TEXT NOT NULL DEFAULT 'HOST' CHECK(plan IN ('HOST')),
+          password_salt TEXT NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL, google_sub TEXT
+        )`);
+        db.exec(`INSERT INTO accounts_new (id,email,display_name,plan,password_salt,password_hash,created_at,google_sub)
+          SELECT id,email,display_name,'HOST',password_salt,password_hash,created_at,google_sub FROM accounts`);
+        db.exec(`DROP TABLE accounts`);
+        db.exec(`ALTER TABLE accounts_new RENAME TO accounts`);
+      })();
+    } finally { db.pragma('foreign_keys = ON'); }
+  }
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_google_sub ON accounts(google_sub) WHERE google_sub IS NOT NULL;
+    CREATE TABLE IF NOT EXISTS ai_forge_usage (
+      id TEXT PRIMARY KEY, account_id TEXT NOT NULL, created_at INTEGER NOT NULL,
+      FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_forge_usage_account_time ON ai_forge_usage(account_id, created_at);
     CREATE TABLE IF NOT EXISTS question_banks (
       id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
       version INTEGER NOT NULL DEFAULT 1, question_count INTEGER NOT NULL, content TEXT NOT NULL,

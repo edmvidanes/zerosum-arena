@@ -1,7 +1,7 @@
 # ZeroSum Arena - securely install the Meta Model API key on EC2.
 # Run it yourself; typing is hidden and the key is base64-wrapped only to survive SSH quoting intact.
 #   .\scripts\set-model-api-key.ps1
-param([string]$Ec2Host = "54.79.58.86", [string]$KeyPath = "C:\Dale\Project\Hackathon-Meta\ZeroSumProd.pem")
+param([string]$Ec2Host = "zerosum.website", [string]$KeyPath = "$HOME\.ssh\zerosum.pem")
 $ErrorActionPreference = "Stop"
 Write-Host "Get a key at https://dev.meta.ai (Dashboard -> Create API key, starts with LLM_)"
 $secure = Read-Host "Paste MODEL_API_KEY (hidden)" -AsSecureString

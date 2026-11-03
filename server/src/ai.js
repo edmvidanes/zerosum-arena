@@ -1,9 +1,34 @@
+import crypto from 'node:crypto';
 // Meta Model API integration (Muse Spark) - dev.meta.ai/docs
 import { excerptForModel } from './document.js';
 import { assertNoExplicitContent, assertPackContentSafe } from './content-safety.js';
 const API_URL = process.env.META_MODEL_API_URL || 'https://api.meta.ai/v1/chat/completions';
 export const AI_MODEL = process.env.META_MODEL || 'muse-spark-1.3';
 export function aiEnabled() { return Boolean(process.env.MODEL_API_KEY || process.env.META_MODEL_API_KEY); }
+
+// AI Pack Forge quota: a hard limit of 5 forged packs per account per week.
+// The week runs Monday 00:00 (server local time) to the next Monday 00:00,
+// when the quota resets.
+export const AI_FORGE_WEEKLY_LIMIT = 5;
+export function forgeWeekWindow(nowMs = Date.now()) {
+  const start = new Date(nowMs);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  const reset = new Date(start);
+  reset.setDate(reset.getDate() + 7);
+  return { startAt: start.getTime(), resetsAt: reset.getTime(), limit: AI_FORGE_WEEKLY_LIMIT };
+}
+export function getForgeQuota(db, accountId, nowMs = Date.now()) {
+  const { startAt, resetsAt, limit } = forgeWeekWindow(nowMs);
+  const used = db.prepare('SELECT COUNT(*) AS count FROM ai_forge_usage WHERE account_id=? AND created_at>=? AND created_at<?')
+    .get(accountId, startAt, resetsAt).count;
+  return { used, limit, remaining: Math.max(0, limit - used), resetsAt };
+}
+export function recordForgeUse(db, accountId, nowMs = Date.now()) {
+  db.prepare('INSERT INTO ai_forge_usage (id,account_id,created_at) VALUES (?,?,?)')
+    .run(crypto.randomUUID(), accountId, nowMs);
+  return getForgeQuota(db, accountId, nowMs);
+}
 function apiKey() { return String(process.env.MODEL_API_KEY || process.env.META_MODEL_API_KEY || '').trim().replace(/\\[rn]$/, '').trim(); }
 export const AI_IDENTITY = 'ZeroSum Sensei - the quiz and learning specialist inside ZeroSum Arena, powered by Meta Muse Spark. It only creates educational quizzes that help people learn; it refuses anything outside quizzes and learning.';
 export function parseAiPack(text) {

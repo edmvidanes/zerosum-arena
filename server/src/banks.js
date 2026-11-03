@@ -88,14 +88,22 @@ export function listBanks(db, accountId, isAdmin = false) {
   if (isAdmin) {
     return db.prepare(`${select} WHERE b.is_sample=0 OR b.owner_id=? ORDER BY b.is_sample DESC,b.updated_at DESC`).all(accountId);
   }
-  return db.prepare(`${select} WHERE b.owner_id=? ORDER BY b.is_sample DESC,b.updated_at DESC`).all(accountId);
+  // Default (sample) packs are shared: every account sees them even if its own
+  // seeded copy does not exist yet (e.g. accounts created after startup, such
+  // as Google sign-ins). Copies exist per account, so dedupe by name and
+  // prefer the account's own copy.
+  const rows = db.prepare(`${select} WHERE b.owner_id=? OR b.is_sample=1 ORDER BY b.is_sample DESC,b.updated_at DESC`).all(accountId);
+  const preferredSampleByName = new Map();
+  for (const bank of rows) if (bank.isSample && !preferredSampleByName.has(bank.name)) preferredSampleByName.set(bank.name, bank.id);
+  for (const bank of rows) if (bank.isSample && bank.ownerId === accountId) preferredSampleByName.set(bank.name, bank.id);
+  return rows.filter((bank) => !bank.isSample || bank.id === preferredSampleByName.get(bank.name));
 }
 
 export function getBank(db, accountId, bankId, anyOwner = false) {
   cleanupExpiredBanks(db);
   const row = anyOwner
     ? db.prepare('SELECT * FROM question_banks WHERE id=?').get(bankId)
-    : db.prepare('SELECT * FROM question_banks WHERE id=? AND owner_id=?').get(bankId, accountId);
+    : db.prepare('SELECT * FROM question_banks WHERE id=? AND (owner_id=? OR is_sample=1)').get(bankId, accountId);
   if (!row) throw new Error('Challenge pack not found.');
   return { ...row, questions: JSON.parse(row.content) };
 }

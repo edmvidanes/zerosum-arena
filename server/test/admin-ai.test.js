@@ -4,10 +4,16 @@ import { isAdminAccount } from '../src/auth.js';
 import { excerptForModel, extractDocumentText } from '../src/document.js';
 
 test('only the configured admin email is admin', () => {
-  assert.equal(isAdminAccount({ email: 'dlsu@zerosum.website' }), true);
-  assert.equal(isAdminAccount({ email: 'DLSU@zerosum.website' }), true);
-  assert.equal(isAdminAccount({ email: 'free@zerosum.local' }), false);
-  assert.equal(isAdminAccount(undefined), false);
+  const previous = process.env.ADMIN_EMAILS;
+  try {
+    process.env.ADMIN_EMAILS = 'admin@example.com, boss@example.com';
+    assert.equal(isAdminAccount({ email: 'admin@example.com' }), true);
+    assert.equal(isAdminAccount({ email: 'ADMIN@example.com' }), true);
+    assert.equal(isAdminAccount({ email: 'someone@example.com' }), false);
+    assert.equal(isAdminAccount(undefined), false);
+  } finally {
+    if (previous === undefined) delete process.env.ADMIN_EMAILS; else process.env.ADMIN_EMAILS = previous;
+  }
 });
 test('excerpt samples start middle and end for token efficiency', () => {
   const text = 'A'.repeat(3000) + 'B'.repeat(3000) + 'C'.repeat(3000);

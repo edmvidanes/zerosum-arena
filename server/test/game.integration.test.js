@@ -15,7 +15,7 @@ class FakeSocket {
 }
 
 function prepareHost(db, here) {
-  const account = { id: 'account-test-paid', email: 'paid@test.local', display_name: 'Paid Host', plan: 'PAID' };
+  const account = { id: 'account-test-paid', email: 'paid@test.local', display_name: 'Host', plan: 'HOST' };
   db.prepare(`INSERT INTO accounts (id,email,display_name,plan,password_salt,password_hash,created_at) VALUES (?,?,?,?,?,?,?)`)
     .run(account.id, account.email, account.display_name, account.plan, 'salt', 'hash', Date.now());
   const source = JSON.parse(fs.readFileSync(path.resolve(here, '../../data/starter-bank.json'), 'utf8'));

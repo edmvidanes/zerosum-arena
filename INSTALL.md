@@ -1,4 +1,4 @@
-# Zerosum beta installation
+# Zerosum installation
 
 ## 1. Prepare the EC2 instance
 
@@ -28,15 +28,14 @@ sudo install -o root -g root -m 0600 /dev/null /etc/zerosum/zerosum.env
 sudoedit /etc/zerosum/zerosum.env
 ```
 
-Enter the following values in the editor. Replace both email and password placeholders. Passwords must be different and at least 12 characters long.
+Enter the following values in the editor:
 
 ```dotenv
-FREE_ACCOUNT_EMAIL=free@example.com
-FREE_ACCOUNT_PASSWORD=replace-with-a-long-random-password
-PAID_ACCOUNT_EMAIL=paid@example.com
-PAID_ACCOUNT_PASSWORD=replace-with-a-different-long-random-password
 PUBLIC_BETA_MODE=true
 PUBLIC_BETA_MAX_ACTIVE_TOURNAMENTS=25
+# Comma-separated account emails that receive admin rights.
+ADMIN_EMAILS=you@example.com
+# Optional, see below: GOOGLE_CLIENT_ID and MODEL_API_KEY.
 ```
 
 Save the file and verify its permissions without displaying its contents:
@@ -49,9 +48,27 @@ sudo stat -c '%a %U:%G %n' /etc/zerosum/zerosum.env
 
 The result should begin with `600 root:root`. Never commit or copy this completed file into the repository.
 
-The current beta keeps sign-in available and grants anonymous hosts the 50-player beta allowance with included packs. Anonymous and free hosts receive redacted question data and cannot create or import packs. A signed-in paid test host can create private packs, import JSON or CSV, inspect answer keys, and review questions used during a tournament. Custom packs remain scoped to their owning account. Account credentials are not published in this guide.
+All host accounts are equal - there are no account tiers. Anyone can sign up with Google sign-in (below); signed-in hosts can create and import private packs, inspect answer keys, and review questions used during a tournament. Guests can open a lobby with the included packs but cannot create, edit or inspect pack contents. Custom packs remain scoped to their owning account.
 
-On the first application startup, ZeroSum creates the Free and Paid accounts from this file and stores salted password hashes in SQLite. Later changes to these password values do not reset an existing account. If the environment file already exists, leave it in place; deployments do not overwrite it.
+Accounts are created on first sign-in, so no account credentials live in this file. The only secrets it should hold are API keys (for example `MODEL_API_KEY`). The file is root-only (`600 root:root`) - root on the host and anyone who can run Docker commands can read container environment, so protect SSH access, and rotate any key that may have been exposed. For larger deployments, inject the same variables from AWS Secrets Manager or SSM Parameter Store instead. If the environment file already exists, leave it in place; deployments do not overwrite it.
+
+### Optional: Google sign-in for hosts
+
+The easy way: run `powershell -ExecutionPolicy Bypass -File .\scripts\setup-google-signin.ps1`, paste your Client ID when prompted (everything else defaults correctly), and the script deploys, writes `GOOGLE_CLIENT_ID` on the server, restarts the app, and verifies the live site. The manual steps it automates are:
+
+Hosts can also sign in with Google (players still join anonymously with a game code). To enable it:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an **OAuth 2.0 Client ID** of type **Web application**. No client secret is needed — ZeroSum uses Google Identity Services ID tokens, not an OAuth redirect flow.
+2. Under **Authorized JavaScript origins**, add every origin that serves the app (for example `https://zerosum.website` and, for local development, `http://localhost:5173`). No redirect URI is required.
+3. Add the client ID to the environment file and restart the server:
+
+```dotenv
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+```
+
+The login form then shows Google's official sign-in button. The server verifies the returned ID token with Google (audience, issuer, expiry, verified email) before issuing the usual `zerosum_session` cookie. A first Google sign-in creates the host account; if the verified email matches an existing password account, the Google identity is linked to that account instead. Leave `GOOGLE_CLIENT_ID` empty to hide the button.
+
+Every signed-in host (Google or email) can create, import and edit packs and use the AI Pack Forge; the included default packs (Bato Bato Pick, AWS Cloud Practitioner Practice, Information Security Awareness unless an admin hides it) are shared with all accounts, including accounts created after startup. The Forge is limited to 5 generated packs per account per week (Monday 00:00 to Monday 00:00 server time).
 
 ## 3. Deploy from your computer
 
@@ -155,14 +172,3 @@ curl -L http://zerosum.website/api/health
 curl https://zerosum.website/api/health
 sudo systemctl status zerosum-tls-renew.timer
 ```
-
-## Add a temporary HTTPS redirect domain
-
-After the additional domain and its `www` record point to the same Elastic IP, run:
-
-```bash
-cd /opt/zerosum/current
-sudo bash ops/add-redirect-domain.sh dalevids.biz https://zerosum.website/ YOUR_EMAIL_ADDRESS
-```
-
-This creates a temporary `302` redirect. Its configuration is stored outside the release directory, so normal Zerosum deployments preserve it. Remove `/etc/zerosum/nginx-conf.d/dalevids.biz.conf` when the portfolio replaces the redirect.

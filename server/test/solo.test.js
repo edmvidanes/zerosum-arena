@@ -23,7 +23,7 @@ function setup() {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const source = JSON.parse(fs.readFileSync(path.resolve(here, '../../data/starter-bank.json'), 'utf8'));
   const questions = source.questions.map((question, index) => ({ ...question, id: `test-${index + 1}`, text: question.prompt }));
-  db.prepare(`INSERT INTO accounts (id,email,display_name,plan,password_salt,password_hash,created_at) VALUES ('owner','o@test.local','Owner','PAID','s','h',?)`).run(Date.now());
+  db.prepare(`INSERT INTO accounts (id,email,display_name,plan,password_salt,password_hash,created_at) VALUES ('owner','o@test.local','Owner','HOST','s','h',?)`).run(Date.now());
   db.prepare(`INSERT INTO question_banks (id,owner_id,name,description,version,question_count,content,created_at,updated_at,is_sample) VALUES ('bank-test','owner','Starter','',1,?,?,?, ?,1)`)
     .run(questions.length, JSON.stringify(questions), Date.now(), Date.now());
   return { temp, db, game: new ZerosumGame(db), questions };
@@ -104,7 +104,7 @@ test('a queued challenger takes the first rival slot when challenges are allowed
 test('host can join as a player and gets the fair player view', () => {
   const ctx = setup();
   try {
-    const account = { id: 'account-test-paid', email: 'paid@test.local', display_name: 'Paid Host', plan: 'PAID' };
+    const account = { id: 'account-test-paid', email: 'paid@test.local', display_name: 'Host', plan: 'HOST' };
     ctx.db.prepare(`INSERT INTO accounts (id,email,display_name,plan,password_salt,password_hash,created_at) VALUES (?,?,?,?,?,?,?)`)
       .run(account.id, account.email, account.display_name, account.plan, 'salt', 'hash', Date.now());
     ctx.db.prepare(`INSERT INTO question_banks (id,owner_id,name,description,version,question_count,content,created_at,updated_at) VALUES ('bank-host',?,'Host Bank','',1,?,?,?,?)`)
