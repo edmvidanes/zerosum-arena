@@ -1,0 +1,186 @@
+{
+  "name": "Philippine History & Civics",
+  "description": "For learners, teachers, and everyone: key moments, heroes, and civic values of the Philippines - ideal for Araling Panlipunan review.",
+  "questions": [
+    {
+      "prompt": "Who is the national hero of the Philippines?",
+      "options": [
+        "Andres Bonifacio",
+        "Jose Rizal",
+        "Emilio Aguinaldo",
+        "Apolinario Mabini"
+      ],
+      "correctIndex": 1,
+      "explanation": "Jose Rizal, author of Noli Me Tangere, is the national hero.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "In what year was Philippine independence from Spain declared?",
+      "options": [
+        "1896",
+        "1898",
+        "1901",
+        "1946"
+      ],
+      "correctIndex": 1,
+      "explanation": "Independence was declared on June 12, 1898 in Kawit, Cavite.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What does the three stars on the Philippine flag represent?",
+      "options": [
+        "Three heroes",
+        "Luzon, Visayas, and Mindanao",
+        "Three branches of government",
+        "Three islands of Manila"
+      ],
+      "correctIndex": 1,
+      "explanation": "The three stars stand for Luzon, Visayas, and Mindanao.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Who was the first President of the Philippines?",
+      "options": [
+        "Manuel Quezon",
+        "Emilio Aguinaldo",
+        "Ferdinand Marcos",
+        "Ramon Magsaysay"
+      ],
+      "correctIndex": 1,
+      "explanation": "Emilio Aguinaldo was the first President, of the First Republic.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is the capital city of the Philippines?",
+      "options": [
+        "Quezon City",
+        "Cebu City",
+        "Manila",
+        "Davao City"
+      ],
+      "correctIndex": 2,
+      "explanation": "Manila is the capital of the Philippines.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "The EDSA People Power Revolution happened in what year?",
+      "options": [
+        "1972",
+        "1983",
+        "1986",
+        "1991"
+      ],
+      "correctIndex": 2,
+      "explanation": "People Power peacefully restored democracy in February 1986.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Who wrote the novels Noli Me Tangere and El Filibusterismo?",
+      "options": [
+        "Jose Rizal",
+        "Marcelo del Pilar",
+        "Graciano Lopez Jaena",
+        "Antonio Luna"
+      ],
+      "correctIndex": 0,
+      "explanation": "Rizal wrote both novels exposing abuses under Spanish rule.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is the highest law of the Philippines?",
+      "options": [
+        "Civil Code",
+        "The Constitution",
+        "Presidential decrees",
+        "Local ordinances"
+      ],
+      "correctIndex": 1,
+      "explanation": "The Constitution is the supreme law of the land.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "How many senators does the Philippines elect nationally?",
+      "options": [
+        "12",
+        "24",
+        "30",
+        "64"
+      ],
+      "correctIndex": 1,
+      "explanation": "The Senate has 24 senators elected nationwide.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which hero is known as the \"Brains of the Revolution\"?",
+      "options": [
+        "Andres Bonifacio",
+        "Emilio Jacinto",
+        "Apolinario Mabini",
+        "Gregorio del Pilar"
+      ],
+      "correctIndex": 2,
+      "explanation": "Apolinario Mabini advised Aguinaldo and shaped revolutionary policy.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What event on December 30, 1896 is commemorated as Rizal Day?",
+      "options": [
+        "Rizals birth",
+        "Rizals execution in Bagumbayan",
+        "Rizals first novel",
+        "Rizals exile to Dapitan"
+      ],
+      "correctIndex": 1,
+      "explanation": "Rizal was executed by firing squad in Bagumbayan (now Luneta).",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "The Philippines is an archipelago of roughly how many islands?",
+      "options": [
+        "About 700",
+        "About 7,641",
+        "About 1,000",
+        "About 17,000"
+      ],
+      "correctIndex": 1,
+      "explanation": "The country has about 7,641 islands.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Who founded the Katipunan (KKK)?",
+      "options": [
+        "Jose Rizal",
+        "Andres Bonifacio",
+        "Emilio Aguinaldo",
+        "Juan Luna"
+      ],
+      "correctIndex": 1,
+      "explanation": "Andres Bonifacio founded the Katipunan in 1892.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is the term length of the Philippine President?",
+      "options": [
+        "4 years",
+        "5 years",
+        "6 years",
+        "7 years"
+      ],
+      "correctIndex": 2,
+      "explanation": "The President serves one six-year term without reelection.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which language pair are the official languages of the Philippines?",
+      "options": [
+        "Filipino and Spanish",
+        "Filipino and English",
+        "English and Cebuano",
+        "Tagalog and Ilocano"
+      ],
+      "correctIndex": 1,
+      "explanation": "Filipino and English are the official languages.",
+      "difficulty": "basic"
+    }
+  ]
+}

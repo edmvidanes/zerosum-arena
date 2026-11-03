@@ -1,0 +1,186 @@
+{
+  "name": "Science Explorers: Body, Earth & Space",
+  "description": "For learners and classrooms: fun, curriculum-friendly science about the human body, our planet, and space - great for class review games.",
+  "questions": [
+    {
+      "prompt": "Which organ pumps blood around the body?",
+      "options": [
+        "Liver",
+        "Brain",
+        "Heart",
+        "Lung"
+      ],
+      "correctIndex": 2,
+      "explanation": "The heart pumps blood to every part of the body.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What gas do plants absorb for photosynthesis?",
+      "options": [
+        "Oxygen",
+        "Carbon dioxide",
+        "Nitrogen",
+        "Hydrogen"
+      ],
+      "correctIndex": 1,
+      "explanation": "Plants take in carbon dioxide and release oxygen.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "How many planets are in our solar system?",
+      "options": [
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
+      "correctIndex": 1,
+      "explanation": "There are 8 planets; Pluto is classified as a dwarf planet.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is the largest planet?",
+      "options": [
+        "Saturn",
+        "Earth",
+        "Jupiter",
+        "Neptune"
+      ],
+      "correctIndex": 2,
+      "explanation": "Jupiter is the largest planet in our solar system.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What force pulls objects toward Earth?",
+      "options": [
+        "Magnetism",
+        "Friction",
+        "Gravity",
+        "Electricity"
+      ],
+      "correctIndex": 2,
+      "explanation": "Gravity pulls objects toward the center of the Earth.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which part of the plant makes food?",
+      "options": [
+        "Roots",
+        "Stem",
+        "Leaves",
+        "Flower"
+      ],
+      "correctIndex": 2,
+      "explanation": "Leaves use sunlight to make food for the plant.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "At what temperature Celsius does water boil at sea level?",
+      "options": [
+        "50 C",
+        "80 C",
+        "100 C",
+        "120 C"
+      ],
+      "correctIndex": 2,
+      "explanation": "Water boils at 100 degrees Celsius at sea level.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which blood cells carry oxygen?",
+      "options": [
+        "White blood cells",
+        "Platelets",
+        "Red blood cells",
+        "Plasma cells"
+      ],
+      "correctIndex": 2,
+      "explanation": "Red blood cells carry oxygen using hemoglobin.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What causes day and night on Earth?",
+      "options": [
+        "Earth revolving around the Sun",
+        "Earth rotating on its axis",
+        "The Moon moving",
+        "Clouds covering the Sun"
+      ],
+      "correctIndex": 1,
+      "explanation": "Earth spins on its axis, so different sides face the Sun.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is a renewable resource?",
+      "options": [
+        "Coal",
+        "Oil",
+        "Solar energy",
+        "Natural gas"
+      ],
+      "correctIndex": 2,
+      "explanation": "Solar energy is naturally replenished and renewable.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "How many bones are in the adult human body?",
+      "options": [
+        "106",
+        "206",
+        "306",
+        "406"
+      ],
+      "correctIndex": 1,
+      "explanation": "Adults have 206 bones; babies are born with about 300.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which layer of Earth do we live on?",
+      "options": [
+        "Core",
+        "Mantle",
+        "Crust",
+        "Magma"
+      ],
+      "correctIndex": 2,
+      "explanation": "We live on the crust, the thin outer layer of Earth.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What do we call animals that eat only plants?",
+      "options": [
+        "Carnivores",
+        "Herbivores",
+        "Omnivores",
+        "Scavengers"
+      ],
+      "correctIndex": 1,
+      "explanation": "Herbivores eat only plants.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which instrument measures temperature?",
+      "options": [
+        "Barometer",
+        "Thermometer",
+        "Speedometer",
+        "Compass"
+      ],
+      "correctIndex": 1,
+      "explanation": "A thermometer measures temperature.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Why does the Moon shine at night?",
+      "options": [
+        "It makes its own light",
+        "It reflects sunlight",
+        "It reflects city lights",
+        "It stores sunlight in rocks"
+      ],
+      "correctIndex": 1,
+      "explanation": "The Moon reflects light from the Sun.",
+      "difficulty": "basic"
+    }
+  ]
+}

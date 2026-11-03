@@ -18,7 +18,8 @@ Browser -> Nginx -> Node.js + React -> SQLite
 - Players join without an account.
 - Signed-in paid beta hosts can create and import private challenge packs; anonymous and free hosts cannot.
 - Anonymous and free beta hosts cannot inspect challenge answers. Signed-in paid test hosts can view answer keys, explanations, and questions used during a tournament.
-- Included packs cover AWS Cloud Practitioner, information security, security awareness, general knowledge, and Bato Bato Pick.
+- **Ready-made learning library (11 packs, 300+ questions, every question has a teaching explanation):** Math Foundations, English Boost, Science Explorers, Philippine History & Civics, Money Smart (financial literacy), Job Ready (workplace skills), Information Security Foundations, Security Awareness, AWS Cloud Practitioner, Starter Mix, and Bato Bato Pick - built for teachers running class reviews, learners practicing solo, and everyone who wants trivia with a purpose.
+- **AI Pack Forge (Meta Muse Spark):** teachers type any topic - or paste their own lesson notes - and Meta's Muse Spark model (Meta Model API) generates a curriculum-friendly quiz pack with explanations. Every AI pack is validated by the same rules as hand-made packs before it can be played. Activates with a server-side MODEL_API_KEY from dev.meta.ai; ready-made packs work without it.
 - A fresh server starts on HTTP so it can be verified before DNS cutover. Enable HTTPS before collecting real accounts or sensitive data.
 
 ## Main features

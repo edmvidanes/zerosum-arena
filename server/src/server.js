@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -7,7 +8,8 @@ import { openDatabase } from './database.js';
 import { ZerosumGame } from './game.js';
 import { log } from './logger.js';
 import { accountFromCookie, clearSessionCookie, ensureSeedAccounts, limitsFor, login, logout, publicAccount, sessionCookie } from './auth.js';
-import { createBank, ensureSampleBanks, getBank, listBanks, parseBankUpload } from './banks.js';
+import { createBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload } from './banks.js';
+import { aiEnabled, AI_MODEL, generateQuizPack } from './ai.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../..');
@@ -42,12 +44,14 @@ const browserAccount = (account, authenticated = false) => {
   return publicBetaMode && safe && !authenticated ? { ...safe, email: 'beta@zerosum.local', displayName: 'Beta Host' } : safe;
 };
 const awsSampleBank = JSON.parse(fs.readFileSync(awsSampleBankPath, 'utf8'));
+const extraSamplePaths = ['math-foundations-bank.json','english-grammar-bank.json','science-explorers-bank.json','philippine-history-bank.json','money-smart-bank.json','job-ready-bank.json'].map((f) => path.join(projectRoot, 'data', f)).filter((f) => fs.existsSync(f));
 ensureSampleBanks(db, [
   JSON.parse(fs.readFileSync(starterBankPath, 'utf8')),
   JSON.parse(fs.readFileSync(rpsSampleBankPath, 'utf8')),
   JSON.parse(fs.readFileSync(informationSecuritySampleBankPath, 'utf8')),
   JSON.parse(fs.readFileSync(securityAwarenessSampleBankPath, 'utf8')),
   { ...awsSampleBank, name: 'AWS Cloud Practitioner Practice' },
+  ...extraSamplePaths.map((f) => JSON.parse(fs.readFileSync(f, 'utf8'))),
 ]);
 const game = new ZerosumGame(db, {
   hideHostQuestions: publicBetaMode,
@@ -146,7 +150,7 @@ const server = http.createServer(async (request, response) => {
     } catch { return sendJson(response, 403, { error: 'Invalid request origin.' }); }
   }
   if (request.method === 'GET' && url.pathname === '/api/config') {
-    return sendJson(response, 200, { websocketUrl: `${secure ? 'wss' : 'ws'}://${request.headers.host}/ws`, publicBeta: publicBetaMode });
+    return sendJson(response, 200, { aiEnabled: aiEnabled(), aiModel: AI_MODEL, websocketUrl: `${secure ? 'wss' : 'ws'}://${request.headers.host}/ws`, publicBeta: publicBetaMode });
   }
   if (request.method === 'GET' && url.pathname === '/api/health') {
     const activeTournaments = db.prepare(`SELECT COUNT(*) AS count FROM tournaments WHERE phase NOT IN ('COMPLETE', 'CANCELLED')`).get().count;
@@ -158,7 +162,7 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'GET' && url.pathname === '/api/me') return sendJson(response, 200, {
     account: browserAccount(account, identity.authenticated) ?? null,
     publicBeta: publicBetaMode, authenticated: identity.authenticated,
-    canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks,
+    canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks, aiEnabled: aiEnabled(), aiModel: AI_MODEL,
   });
   if (request.method === 'GET' && url.pathname === '/api/solo/leaderboard') {
     const entries = db.prepare('SELECT code, name, avatar, bank_name AS bankName, streak, ladder_length AS ladderLength, result, ended_at AS endedAt FROM solo_leaderboard WHERE streak >= 2 AND result != \'FORFEIT\' ORDER BY streak DESC, ended_at DESC LIMIT 5').all();
@@ -199,7 +203,7 @@ const server = http.createServer(async (request, response) => {
     if (!account) return sendJson(response, 401, { error: 'Sign in to manage challenge packs.' });
     const banks = listBanks(db, account.id);
     return sendJson(response, 200, {
-      banks: publicBetaMode && !identity.authenticated ? banks.filter((bank) => Boolean(bank.isSample)) : banks,
+      banks: publicBetaMode && !identity.authenticated ? banks.filter((bank) => Boolean(bank.isSample) || String(bank.description).startsWith('AI Forge')) : banks,
       limits: limitsFor(account.plan),
     });
   }
@@ -239,6 +243,21 @@ const server = http.createServer(async (request, response) => {
       const bank = createBank(db, account, limitsFor(account.plan), body.content ? parseBankUpload(body) : body);
       return sendJson(response, 201, { bank });
     } catch (error) { return sendJson(response, 400, { error: error.message }); }
+  }
+  if (request.method === 'POST' && url.pathname === '/api/ai/generate-pack') {
+    if (!account) return sendJson(response, 401, { error: 'Sign in to use AI Pack Forge.' });
+    if (!allowAttempt(tournamentCreationAttempts, 'ai:' + clientAddress(request), 6, 20 * 60 * 1000)) return sendJson(response, 429, { error: 'Too many AI requests from this network. Try again in a few minutes.' });
+    try {
+      const body = await readJson(request, 32 * 1024);
+      const generated = await generateQuizPack(body);
+      const questions = normalizeQuestions(generated.questions, 25);
+      const cleanName = String(generated.name || body.topic || 'AI Quiz Pack').trim().slice(0, 80) || 'AI Quiz Pack';
+      const bank = { id: crypto.randomUUID(), name: cleanName, description: ('AI Forge - made with Meta ' + AI_MODEL + ' for ' + String(body.audience ?? 'Everyone')).slice(0, 300), questions };
+      const now = Date.now();
+      db.prepare('INSERT INTO question_banks (id,owner_id,name,description,version,question_count,content,created_at,updated_at,game_mode) VALUES (?,?,?,?,1,?,?,?,?,?)').run(bank.id, account.id, bank.name, bank.description, questions.length, JSON.stringify(questions), now, now, 'QUIZ');
+      db.prepare("DELETE FROM question_banks WHERE owner_id=? AND description LIKE 'AI Forge%' AND id NOT IN (SELECT id FROM question_banks WHERE owner_id=? AND description LIKE 'AI Forge%' ORDER BY created_at DESC LIMIT 20)").run(account.id, account.id);
+      return sendJson(response, 201, { bank: { id: bank.id, name: bank.name, description: bank.description, version: 1, questionCount: questions.length, createdAt: now, updatedAt: now, gameMode: 'QUIZ', isSample: 0 }, model: AI_MODEL });
+    } catch (error) { return sendJson(response, error.code === 'AI_NOT_CONFIGURED' ? 503 : 400, { error: error.message, code: error.code ?? 'AI_ERROR' }); }
   }
   if (request.method === 'POST' && ['/api/action', '/api/sync'].includes(url.pathname)) {
     const socket = httpSocket(account, identity.canViewAnswers, publicBetaMode && !identity.authenticated);

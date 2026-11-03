@@ -1,0 +1,186 @@
+{
+  "name": "Job Ready: Workplace & Interview Skills",
+  "description": "For everyone and graduating learners: resumes, interviews, teamwork, and professional habits that help you get and keep a job.",
+  "questions": [
+    {
+      "prompt": "What is the main purpose of a resume?",
+      "options": [
+        "To list every job ever done",
+        "To summarize your skills and experience for employers",
+        "To replace an interview",
+        "To show your handwriting"
+      ],
+      "correctIndex": 1,
+      "explanation": "A resume markets your relevant skills and experience concisely.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "In an interview, \"Tell me about yourself\" is best answered by...",
+      "options": [
+        "Reciting your whole life story",
+        "A short summary of your background, skills, and goals",
+        "Talking about salary first",
+        "Saying you have no weaknesses"
+      ],
+      "correctIndex": 1,
+      "explanation": "Keep it brief, relevant, and focused on the role.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is the most professional email address?",
+      "options": [
+        "cutiepie2005@email.com",
+        "j.delacruz@email.com",
+        "gamerlord@email.com",
+        "partyboy@email.com"
+      ],
+      "correctIndex": 1,
+      "explanation": "A name-based address looks professional to employers.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What should you do before a job interview?",
+      "options": [
+        "Arrive exactly at start time without research",
+        "Research the company and practice answers",
+        "Wear casual beach clothes",
+        "Bring friends along"
+      ],
+      "correctIndex": 1,
+      "explanation": "Preparation shows genuine interest in the company.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is an example of a soft skill?",
+      "options": [
+        "Typing speed",
+        "Communication and teamwork",
+        "Operating a forklift",
+        "Coding in Python"
+      ],
+      "correctIndex": 1,
+      "explanation": "Soft skills are interpersonal abilities like communication.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "If you will be late to work because of an emergency, you should...",
+      "options": [
+        "Say nothing and sneak in",
+        "Inform your supervisor as soon as possible",
+        "Ask a coworker to lie for you",
+        "Skip work silently"
+      ],
+      "correctIndex": 1,
+      "explanation": "Prompt, honest communication is professional behavior.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What does \"deadline\" mean at work?",
+      "options": [
+        "A type of meeting",
+        "The latest time a task must be finished",
+        "A lunch schedule",
+        "A dress code rule"
+      ],
+      "correctIndex": 1,
+      "explanation": "A deadline is the due date and time for a task.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which behavior best shows teamwork?",
+      "options": [
+        "Doing only your own tasks and ignoring others",
+        "Helping a struggling teammate meet a shared goal",
+        "Taking credit for group work",
+        "Complaining about coworkers"
+      ],
+      "correctIndex": 1,
+      "explanation": "Teamwork means supporting shared goals.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "A cover letter should mainly...",
+      "options": [
+        "Repeat the resume word for word",
+        "Explain why you fit this specific job",
+        "Tell your life story",
+        "List your salary demands first"
+      ],
+      "correctIndex": 1,
+      "explanation": "A cover letter connects your experience to the specific role.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "During an interview, good body language includes...",
+      "options": [
+        "Slouching and avoiding eye contact",
+        "Sitting upright and making comfortable eye contact",
+        "Checking your phone",
+        "Crossing arms tightly"
+      ],
+      "correctIndex": 1,
+      "explanation": "Upright posture and eye contact show confidence and respect.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is the best way to handle constructive criticism?",
+      "options": [
+        "Argue immediately",
+        "Listen, ask clarifying questions, and improve",
+        "Ignore it completely",
+        "Quit the job"
+      ],
+      "correctIndex": 1,
+      "explanation": "Professionals use feedback to grow.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which document proves your identity for employment in the Philippines?",
+      "options": [
+        "A handwritten note",
+        "Government-issued ID",
+        "A school diary",
+        "A social media profile"
+      ],
+      "correctIndex": 1,
+      "explanation": "Employers require valid government-issued identification.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Networking for jobs means...",
+      "options": [
+        "Using only job websites",
+        "Building professional relationships that share opportunities",
+        "Asking strangers for money",
+        "Avoiding people in your field"
+      ],
+      "correctIndex": 1,
+      "explanation": "Networks surface opportunities and referrals.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "If you do not know the answer to an interview question, you should...",
+      "options": [
+        "Invent an impressive story",
+        "Be honest and explain how you would find out",
+        "Stay completely silent",
+        "Change the topic rudely"
+      ],
+      "correctIndex": 1,
+      "explanation": "Honesty plus problem-solving impresses interviewers.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is a professional way to follow up after an interview?",
+      "options": [
+        "Message daily until they reply",
+        "Send one polite thank-you message",
+        "Visit their home",
+        "Complain if there is no reply in a day"
+      ],
+      "correctIndex": 1,
+      "explanation": "One courteous thank-you message leaves a good impression.",
+      "difficulty": "basic"
+    }
+  ]
+}

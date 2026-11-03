@@ -1,0 +1,186 @@
+{
+  "name": "Money Smart: Financial Literacy for Everyone",
+  "description": "For everyone: budgeting, saving, interest, and scam awareness - practical money skills for students, families, and young professionals.",
+  "questions": [
+    {
+      "prompt": "What is a budget?",
+      "options": [
+        "A type of bank account",
+        "A plan for how you spend and save money",
+        "A loan from a bank",
+        "A government tax"
+      ],
+      "correctIndex": 1,
+      "explanation": "A budget is a plan that tracks income and spending.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What does \"save first\" or pay yourself first mean?",
+      "options": [
+        "Spend on wants first",
+        "Set aside savings before spending",
+        "Borrow before saving",
+        "Save only leftover money"
+      ],
+      "correctIndex": 1,
+      "explanation": "Paying yourself first builds savings before expenses tempt you.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "If you save 100 pesos a week, how much in 10 weeks (no interest)?",
+      "options": [
+        "500 pesos",
+        "1,000 pesos",
+        "100 pesos",
+        "10,000 pesos"
+      ],
+      "correctIndex": 1,
+      "explanation": "100 x 10 = 1,000 pesos.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is interest on a savings account?",
+      "options": [
+        "A fee the bank charges",
+        "Money the bank pays you for keeping deposits",
+        "A type of loan",
+        "A tax on savings"
+      ],
+      "correctIndex": 1,
+      "explanation": "Banks pay interest as a reward for using your deposits.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is an example of a \"need\" rather than a \"want\"?",
+      "options": [
+        "Concert tickets",
+        "Rice and basic food",
+        "Designer shoes",
+        "Video games"
+      ],
+      "correctIndex": 1,
+      "explanation": "Basic food is a need; the rest are wants.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is an emergency fund for?",
+      "options": [
+        "Daily shopping",
+        "Unexpected expenses like illness or repairs",
+        "Luxury trips",
+        "Lending to friends"
+      ],
+      "correctIndex": 1,
+      "explanation": "An emergency fund covers surprises without going into debt.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "A loan charges 5% interest on 10,000 pesos for one year. How much interest?",
+      "options": [
+        "50 pesos",
+        "500 pesos",
+        "5,000 pesos",
+        "100 pesos"
+      ],
+      "correctIndex": 1,
+      "explanation": "5% of 10,000 = 500 pesos.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is the safest reaction to a text saying you won a prize and must send a fee?",
+      "options": [
+        "Send the fee quickly",
+        "Ignore and report it - likely a scam",
+        "Share your bank PIN",
+        "Click the link to claim"
+      ],
+      "correctIndex": 1,
+      "explanation": "Legitimate prizes never ask for fees or PINs - it is a scam pattern.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What does diversification mean in investing?",
+      "options": [
+        "Putting all money in one stock",
+        "Spreading money across different investments",
+        "Keeping cash at home",
+        "Borrowing to invest"
+      ],
+      "correctIndex": 1,
+      "explanation": "Diversification spreads risk across different assets.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which habit best helps avoid debt?",
+      "options": [
+        "Using credit for every want",
+        "Spending less than you earn",
+        "Paying only minimum dues forever",
+        "Ignoring bills"
+      ],
+      "correctIndex": 1,
+      "explanation": "Spending less than you earn is the core of avoiding debt.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is inflation?",
+      "options": [
+        "Prices generally rising over time",
+        "A bank account type",
+        "A coin collection",
+        "A salary increase"
+      ],
+      "correctIndex": 0,
+      "explanation": "Inflation means money buys less as prices rise over time.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "How long should an emergency fund ideally cover?",
+      "options": [
+        "One day of expenses",
+        "About 3-6 months of expenses",
+        "Ten years of salary",
+        "It is not needed"
+      ],
+      "correctIndex": 1,
+      "explanation": "Experts suggest 3-6 months of essential expenses.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is a fixed expense?",
+      "options": [
+        "Monthly rent",
+        "Movie tickets",
+        "Snacks",
+        "Concerts"
+      ],
+      "correctIndex": 0,
+      "explanation": "Rent stays the same each month, so it is a fixed expense.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What should you check before borrowing money?",
+      "options": [
+        "Only the monthly payment",
+        "Total cost, interest, and your ability to repay",
+        "The lenders logo",
+        "What friends think"
+      ],
+      "correctIndex": 1,
+      "explanation": "Always check the total repayment cost and affordability.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Tracking every expense for a month helps you to...",
+      "options": [
+        "Earn more instantly",
+        "See where your money actually goes",
+        "Avoid all taxes",
+        "Get free bank fees"
+      ],
+      "correctIndex": 1,
+      "explanation": "Tracking reveals spending leaks you can fix.",
+      "difficulty": "basic"
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "name": "Math Foundations: Fractions, Decimals & Percent",
+  "description": "For learners and classrooms: core numeracy for grades 5-8 - fractions, decimals, percent, and everyday word problems with teaching explanations.",
+  "questions": [
+    {
+      "prompt": "What is 3/4 as a decimal?",
+      "options": [
+        "0.34",
+        "0.75",
+        "0.43",
+        "1.34"
+      ],
+      "correctIndex": 1,
+      "explanation": "Divide 3 by 4: 3/4 = 0.75.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which fraction is equal to 50%?",
+      "options": [
+        "1/4",
+        "1/3",
+        "1/2",
+        "2/3"
+      ],
+      "correctIndex": 2,
+      "explanation": "50% means 50 out of 100, which simplifies to 1/2.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is 15% of 200?",
+      "options": [
+        "15",
+        "20",
+        "30",
+        "45"
+      ],
+      "correctIndex": 2,
+      "explanation": "10% of 200 is 20 and 5% is 10, so 15% is 30.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is larger: 2/3 or 3/5?",
+      "options": [
+        "2/3",
+        "3/5",
+        "They are equal",
+        "Cannot tell"
+      ],
+      "correctIndex": 0,
+      "explanation": "2/3 is about 0.667 and 3/5 is 0.6, so 2/3 is larger.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is 0.6 as a fraction in lowest terms?",
+      "options": [
+        "6/100",
+        "3/5",
+        "6/9",
+        "1/6"
+      ],
+      "correctIndex": 1,
+      "explanation": "0.6 = 6/10, which simplifies to 3/5.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "A shirt costs 400 pesos with 25% off. How much do you pay?",
+      "options": [
+        "100 pesos",
+        "250 pesos",
+        "300 pesos",
+        "375 pesos"
+      ],
+      "correctIndex": 2,
+      "explanation": "25% of 400 is 100, so you pay 400 - 100 = 300 pesos.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is 1/2 + 1/4?",
+      "options": [
+        "2/6",
+        "1/6",
+        "3/4",
+        "1/8"
+      ],
+      "correctIndex": 2,
+      "explanation": "1/2 = 2/4, and 2/4 + 1/4 = 3/4.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "How many minutes are in 2.5 hours?",
+      "options": [
+        "120",
+        "125",
+        "150",
+        "250"
+      ],
+      "correctIndex": 2,
+      "explanation": "2.5 x 60 = 150 minutes.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is 7 x 8?",
+      "options": [
+        "54",
+        "56",
+        "64",
+        "48"
+      ],
+      "correctIndex": 1,
+      "explanation": "7 x 8 = 56.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which number is a prime number?",
+      "options": [
+        "21",
+        "27",
+        "29",
+        "33"
+      ],
+      "correctIndex": 2,
+      "explanation": "29 has only two factors: 1 and 29.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "A class has 12 boys and 18 girls. What is the ratio of boys to girls in lowest terms?",
+      "options": [
+        "2:3",
+        "3:2",
+        "6:9",
+        "12:18"
+      ],
+      "correctIndex": 0,
+      "explanation": "Divide both by 6: 12:18 becomes 2:3.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is the next number in the pattern 3, 6, 12, 24, ...?",
+      "options": [
+        "30",
+        "36",
+        "48",
+        "42"
+      ],
+      "correctIndex": 2,
+      "explanation": "Each number doubles, so 24 x 2 = 48.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "If a train travels 60 km in 1 hour, how far in 3.5 hours at the same speed?",
+      "options": [
+        "180 km",
+        "210 km",
+        "200 km",
+        "240 km"
+      ],
+      "correctIndex": 1,
+      "explanation": "60 x 3.5 = 210 km.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is 144 divided by 12?",
+      "options": [
+        "11",
+        "13",
+        "12",
+        "14"
+      ],
+      "correctIndex": 2,
+      "explanation": "12 x 12 = 144.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is the best estimate for 49 x 21?",
+      "options": [
+        "800",
+        "1000",
+        "1200",
+        "500"
+      ],
+      "correctIndex": 1,
+      "explanation": "49 is about 50 and 21 is about 20, so about 50 x 20 = 1000.",
+      "difficulty": "basic"
+    }
+  ]
+}

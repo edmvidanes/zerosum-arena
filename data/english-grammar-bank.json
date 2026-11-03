@@ -1,0 +1,186 @@
+{
+  "name": "English Boost: Grammar & Vocabulary",
+  "description": "For learners and teachers: everyday grammar, sentence building, and useful vocabulary for school and work communication.",
+  "questions": [
+    {
+      "prompt": "Choose the correct sentence.",
+      "options": [
+        "She go to school every day.",
+        "She goes to school every day.",
+        "She going to school every day.",
+        "She gone to school every day."
+      ],
+      "correctIndex": 1,
+      "explanation": "With she/he/it, add -s to the verb in the present simple: she goes.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is the past tense of \"teach\"?",
+      "options": [
+        "Teached",
+        "Teaching",
+        "Taught",
+        "Teaches"
+      ],
+      "correctIndex": 2,
+      "explanation": "Teach is irregular: teach - taught - taught.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which word is a synonym of \"happy\"?",
+      "options": [
+        "Sad",
+        "Joyful",
+        "Angry",
+        "Tired"
+      ],
+      "correctIndex": 1,
+      "explanation": "Joyful means very happy.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Choose the correct article: \"She is ___ honest person.\"",
+      "options": [
+        "a",
+        "an",
+        "the",
+        "no article"
+      ],
+      "correctIndex": 1,
+      "explanation": "Honest starts with a vowel sound, so we use an.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which sentence is in the future tense?",
+      "options": [
+        "I ate lunch.",
+        "I am eating lunch.",
+        "I will eat lunch.",
+        "I eat lunch daily."
+      ],
+      "correctIndex": 2,
+      "explanation": "Will + verb shows a future action.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What does the idiom \"break the ice\" mean?",
+      "options": [
+        "To start a conversation",
+        "To break something cold",
+        "To end a friendship",
+        "To win a game"
+      ],
+      "correctIndex": 0,
+      "explanation": "To break the ice means to ease the first awkward moments of conversation.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Choose the plural of \"child\".",
+      "options": [
+        "Childs",
+        "Childes",
+        "Children",
+        "Childrens"
+      ],
+      "correctIndex": 2,
+      "explanation": "Child has the irregular plural children.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which word best completes: \"The exam was ___ than I expected.\"",
+      "options": [
+        "hard",
+        "harder",
+        "hardest",
+        "more hard"
+      ],
+      "correctIndex": 1,
+      "explanation": "Than signals a comparison, so use the comparative harder.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is an antonym of \"ancient\"?",
+      "options": [
+        "Old",
+        "Modern",
+        "Antique",
+        "Historic"
+      ],
+      "correctIndex": 1,
+      "explanation": "Modern is the opposite of ancient.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Choose the correct preposition: \"He arrived ___ Monday morning.\"",
+      "options": [
+        "in",
+        "at",
+        "on",
+        "by"
+      ],
+      "correctIndex": 2,
+      "explanation": "Use on with days of the week.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which is a proper noun?",
+      "options": [
+        "city",
+        "river",
+        "Manila",
+        "mountain"
+      ],
+      "correctIndex": 2,
+      "explanation": "Manila names a specific place, so it is a proper noun and capitalized.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What does \"library\" mean?",
+      "options": [
+        "A place that sells food",
+        "A place where books are kept and borrowed",
+        "A type of school bus",
+        "A sports center"
+      ],
+      "correctIndex": 1,
+      "explanation": "A library is where people read and borrow books.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Choose the correct form: \"They ___ playing outside now.\"",
+      "options": [
+        "is",
+        "am",
+        "are",
+        "was"
+      ],
+      "correctIndex": 2,
+      "explanation": "They pairs with are in the present continuous.",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "Which punctuation ends a question?",
+      "options": [
+        "Period",
+        "Comma",
+        "Question mark",
+        "Exclamation point"
+      ],
+      "correctIndex": 2,
+      "explanation": "Questions end with a question mark (?).",
+      "difficulty": "basic"
+    },
+    {
+      "prompt": "What is the main verb in: \"Maria quickly finished her homework.\"?",
+      "options": [
+        "Maria",
+        "Quickly",
+        "Finished",
+        "Homework"
+      ],
+      "correctIndex": 2,
+      "explanation": "Finished is the action word - the verb.",
+      "difficulty": "basic"
+    }
+  ]
+}
