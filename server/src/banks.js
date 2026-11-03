@@ -68,10 +68,26 @@ export function listBanks(db, accountId) {
     updated_at AS updatedAt,is_sample AS isSample,game_mode AS gameMode FROM question_banks WHERE owner_id=? ORDER BY is_sample DESC,updated_at DESC`).all(accountId);
 }
 
-export function getBank(db, accountId, bankId) {
-  const row = db.prepare('SELECT * FROM question_banks WHERE id=? AND owner_id=?').get(bankId, accountId);
+export function getBank(db, accountId, bankId, anyOwner = false) {
+  const row = anyOwner
+    ? db.prepare('SELECT * FROM question_banks WHERE id=?').get(bankId)
+    : db.prepare('SELECT * FROM question_banks WHERE id=? AND owner_id=?').get(bankId, accountId);
   if (!row) throw new Error('Challenge pack not found.');
   return { ...row, questions: JSON.parse(row.content) };
+}
+
+export function updateBank(db, account, isAdmin, bankId, input) {
+  const existing = db.prepare('SELECT * FROM question_banks WHERE id=?').get(bankId);
+  if (!existing) throw new Error('Challenge pack not found.');
+  if (!isAdmin && existing.owner_id !== account.id) throw new Error('Challenge pack not found.');
+  if (existing.game_mode === 'RPS') throw new Error('Bato Bato Pick is a game mode, not an editable quiz pack.');
+  const questions = normalizeQuestions(input.questions, 500, Boolean(input.allowDuplicates));
+  const name = cleanText(input.name ?? existing.name, 'Pack name', 80);
+  const description = String(input.description ?? existing.description ?? '').trim().slice(0, 300);
+  const now = Date.now();
+  db.prepare('UPDATE question_banks SET name=?,description=?,question_count=?,content=?,updated_at=? WHERE id=?')
+    .run(name, description, questions.length, JSON.stringify(questions), now, existing.id);
+  return { id: existing.id, name, description, version: existing.version, questionCount: questions.length, createdAt: existing.created_at, updatedAt: now, isSample: existing.is_sample, gameMode: existing.game_mode };
 }
 
 export function createBank(db, account, limits, input) {

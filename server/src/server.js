@@ -8,7 +8,7 @@ import { openDatabase } from './database.js';
 import { ZerosumGame } from './game.js';
 import { log } from './logger.js';
 import { accountFromCookie, clearSessionCookie, ensureSeedAccounts, isAdminAccount, limitsFor, login, logout, publicAccount, sessionCookie } from './auth.js';
-import { createBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload } from './banks.js';
+import { createBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload, updateBank } from './banks.js';
 import { aiEnabled, AI_MODEL, generateQuizPack } from './ai.js';
 import { excerptForModel, extractDocumentText } from './document.js';
 
@@ -211,8 +211,8 @@ const server = http.createServer(async (request, response) => {
   }
   if (request.method === 'GET' && url.pathname.startsWith('/api/banks/')) {
     if (!account) return sendJson(response, 401, { error: 'Sign in to view challenge packs.' });
-    if (publicBetaMode && !identity.canViewAnswers) return sendJson(response, 403, { error: 'Question previews require a signed-in paid host during public beta.' });
-    try { return sendJson(response, 200, { bank: getBank(db, account.id, url.pathname.split('/').pop()) }); }
+    if (publicBetaMode && !identity.canViewAnswers && !identity.isAdmin) return sendJson(response, 403, { error: 'Question previews require a signed-in paid host during public beta.' });
+    try { return sendJson(response, 200, { bank: getBank(db, account.id, url.pathname.split('/').pop(), identity.isAdmin) }); }
     catch (error) { return sendJson(response, 404, { error: error.message }); }
   }
   if (request.method === 'POST' && url.pathname === '/api/auth/login') {
@@ -246,6 +246,15 @@ const server = http.createServer(async (request, response) => {
       if (hidden) db.prepare('INSERT OR REPLACE INTO hidden_packs (name, hidden_at) VALUES (?,?)').run(name, Date.now());
       else db.prepare('DELETE FROM hidden_packs WHERE name=?').run(name);
       return sendJson(response, 200, { ok: true, name, hidden });
+    } catch (error) { return sendJson(response, 400, { error: error.message }); }
+  }
+  if (request.method === 'PUT' && url.pathname.startsWith('/api/banks/')) {
+    if (!account) return sendJson(response, 401, { error: 'Sign in to edit challenge packs.' });
+    if (!identity.canManagePacks && !identity.isAdmin) return sendJson(response, 403, { error: 'Editing challenge packs requires a signed-in paid host during public beta.' });
+    try {
+      const body = await readJson(request, 256 * 1024);
+      const bank = updateBank(db, account, identity.isAdmin, url.pathname.split('/').pop(), body);
+      return sendJson(response, 200, { bank });
     } catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
   if (request.method === 'POST' && url.pathname === '/api/banks/import') {

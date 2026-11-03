@@ -220,6 +220,14 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .ai-upload-browse:hover { border-color: #65d9eb; transform: translateY(-1px); }
 .ai-upload-remove { width: 36px; height: 36px; border: 1px solid #a8762f; border-radius: 50%; background: #3a2a12; color: #ffc06e; font-size: 19px; line-height: 1; cursor: pointer; }
 @media (max-width: 700px) { .ai-identity { grid-template-columns: 50px 1fr; } .ai-identity em { grid-column: 2; justify-self: start; } .ai-upload { grid-template-columns: 52px 1fr; } .ai-upload-browse, .ai-upload-remove { grid-column: 2; justify-self: start; } }
+.pack-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+.pack-row .pack-main { width: 100%; height: 100%; }
+.pack-row.selected .pack-main { border-color: #ff9e3f; background: #382412; }
+.pack-row.selected .pack-main .pack-icon { background: #533417; color: #ffb25a; }
+.pack-edit-btn { min-width: 92px; padding: 10px 12px; border: 1px solid #557b8a; border-radius: 11px; background: #0d2a38; color: #8fe3f2; font: 700 11px Chakra Petch, sans-serif; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; transition: .15s; }
+.pack-edit-btn:hover:not(:disabled) { border-color: #65d9eb; transform: translateY(-1px); }
+.pack-edit-btn:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 700px) { .pack-row { grid-template-columns: 1fr; } .pack-edit-btn { min-height: 42px; } }
 .admin-packs { margin-bottom: 6px; }
 .admin-pack-card { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 12px; min-height: 82px; padding: 15px; border: 1px solid #476a78; border-radius: 11px; background: #06151f; color: #d9ebef; }
 .admin-pack-card > span:nth-child(2) { display: grid; gap: 5px; min-width: 0; }

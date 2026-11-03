@@ -22,7 +22,7 @@ const clientId = (() => {
 })();
 
 type LandingMode = 'choose' | 'join' | 'login' | 'host' | 'banks' | 'solo' | 'challenge';
-type BankManagerView = 'library' | 'create' | 'import' | 'ai';
+type BankManagerView = 'library' | 'create' | 'import' | 'ai' | 'edit';
 type DraftQuestion = {
   id: string;
   prompt: string;
@@ -1054,6 +1054,9 @@ export function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [aiFile, setAiFile] = useState<{ name: string; contentBase64: string; size: number }>();
   const [aiDocNote, setAiDocNote] = useState('');
+  const [editingBankId, setEditingBankId] = useState('');
+  const [editOrigin, setEditOrigin] = useState<'library' | 'forge'>('library');
+  const [loadingBank, setLoadingBank] = useState(false);
   const [aiModel, setAiModel] = useState('muse-spark-1.3');
   const [copyStatus, setCopyStatus] = useState('Copy link');
 
@@ -1440,10 +1443,44 @@ export function App() {
       const response = await fetch('/api/ai/generate-pack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: aiTopic, audience: aiAudience, count: aiCount, sourceText: aiSource, sourceFile: aiFile }) });
       const result = await response.json() as { bank?: BankSummary; error?: string; model?: string; document?: { pages: number; characters: number; fileName: string } };
       if (!response.ok || !result.bank) { setError(result.error ?? 'AI Pack Forge could not create that pack.'); return; }
-      await loadBanks(); setSelectedBankId(result.bank.id); setAiTopic(''); setAiSource(''); setAiFile(undefined); setAiDocNote(result.document ? 'Read ' + result.document.pages + ' page(s), ' + result.document.characters.toLocaleString() + ' characters from ' + result.document.fileName + '.' : ''); setMode('host'); playSfx('charge');
+      await loadBanks(); setSelectedBankId(result.bank.id); setAiTopic(''); setAiSource(''); setAiFile(undefined); await openPackEditor(result.bank.id, 'forge'); setAiDocNote(result.document ? 'Read ' + result.document.pages + ' page(s), ' + result.document.characters.toLocaleString() + ' characters from ' + result.document.fileName + '.' : ''); playSfx('charge');
     } catch { setError('Could not reach the AI Pack Forge. Check your connection and try again.'); }
     finally { setAiBusy(false); }
   }
+
+  async function openPackEditor(bankId: string, origin: 'library' | 'forge' = 'library') {
+    setLoadingBank(true); setError('');
+    try {
+      const response = await fetch(`/api/banks/${encodeURIComponent(bankId)}`, { cache: 'no-store' });
+      const result = await response.json() as { bank?: { name: string; description: string; questions: QuestionPreview[] }; error?: string };
+      if (!response.ok || !result.bank) { setError(result.error ?? 'Could not open that pack.'); return; }
+      setEditingBankId(bankId); setEditOrigin(origin);
+      setBankName(result.bank.name); setBankDescription(result.bank.description ?? '');
+      setDraftQuestions(result.bank.questions.map((q) => ({ id: q.id || createClientId(), prompt: q.text, options: [...q.options], correctIndex: q.correctIndex, explanation: q.explanation ?? '', difficulty: q.difficulty === 'scenario' ? 'scenario' : 'basic' })));
+      setAllowDuplicateQuestions(true);
+      setBankManagerView('edit'); setMode('banks');
+    } catch { setError('Could not reach Zerosum. Check your connection and try again.'); }
+    finally { setLoadingBank(false); }
+  }
+
+  async function persistEditedBank(): Promise<boolean> {
+    if (!editingBankId) return false;
+    if (!bankName.trim()) { setError('Give your challenge pack a name.'); return false; }
+    if (draftQuestions.length < 3) { setError('A pack needs at least 3 questions.'); return false; }
+    if (draftQuestions.some((q) => !q.prompt.trim())) { setError('Add a question to every question card.'); return false; }
+    if (draftQuestions.some((q) => q.options.some((o) => !o.trim()))) { setError('Complete every answer choice, or remove unused choices.'); return false; }
+    setSavingBank(true); setError('');
+    try {
+      const response = await fetch(`/api/banks/${encodeURIComponent(editingBankId)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: bankName, description: bankDescription, allowDuplicates: true, questions: draftQuestions.map(({ prompt, options, correctIndex, explanation, difficulty }) => ({ prompt, options, correctIndex, explanation, difficulty })) }) });
+      const result = await response.json() as { bank?: BankSummary; error?: string };
+      if (!response.ok || !result.bank) { setError(result.error ?? 'Unable to save that pack.'); return false; }
+      await loadBanks(); setSelectedBankId(result.bank.id); return true;
+    } catch { setError('Could not reach Zerosum. Check your connection and try again.'); return false; }
+    finally { setSavingBank(false); }
+  }
+
+  async function saveEditedBank(event: FormEvent) { event.preventDefault(); if (await persistEditedBank()) setBankManagerView('library'); }
+  async function saveEditedAndUse(event: FormEvent) { event.preventDefault(); if (await persistEditedBank()) setMode('host'); }
 
   async function submitBank(payload: Record<string, unknown>) {
     if (!canManagePacks) {
@@ -1713,15 +1750,15 @@ export function App() {
           </div>
           {publicBeta && <p className="limit-note">{canManagePacks ? 'Your paid test account can create and import private packs and preview answer keys.' : 'Sign in with a paid test account to create private packs and preview answer keys; you can still use every included pack.'}</p>}
           <div className="library-heading"><h3>Your challenge packs</h3><small>Select a pack to use it in your next tournament.</small></div>
-          <div className="bank-summary friendly">{banks.map((bank) => <button type="button" className={selectedBankId === bank.id ? 'selected' : ''} key={bank.id} onClick={() => { setSelectedBankId(bank.id); setMode('host'); }}><span className="pack-icon">{bank.gameMode === 'RPS' ? '✊' : bank.isSample ? '★' : '✦'}</span><span><b>{bank.name}</b><small>{bank.isSample ? 'Included with Zerosum' : 'Your custom pack'} · {bank.gameMode === 'RPS' ? 'Player-vs-player mode' : `${bank.questionCount} questions`}</small></span><em>{selectedBankId === bank.id ? 'Selected' : 'Use pack'}</em></button>)}</div>
+          <div className="bank-summary friendly">{banks.map((bank) => <div className={selectedBankId === bank.id ? 'pack-row selected' : 'pack-row'} key={bank.id}><button type="button" className="pack-main" onClick={() => { setSelectedBankId(bank.id); setMode('host'); }}><span className="pack-icon">{bank.gameMode === 'RPS' ? '✊' : bank.isSample ? '★' : '✦'}</span><span><b>{bank.name}</b><small>{bank.isSample ? 'Included with Zerosum' : String(bank.description).startsWith('AI Forge') ? 'AI-forged pack' : 'Your custom pack'} · {bank.gameMode === 'RPS' ? 'Player-vs-player mode' : `${bank.questionCount} questions`}</small></span><em>{selectedBankId === bank.id ? 'Selected' : 'Use pack'}</em></button>{bank.gameMode !== 'RPS' && (isAdmin || canManagePacks) && <button type="button" className="pack-edit-btn" disabled={loadingBank} onClick={() => void openPackEditor(bank.id)}>View / Edit</button>}</div>)}</div>
           {customBankCount >= (account?.limits.banks ?? 0) && <p className="limit-note">You have used all custom pack slots on this plan. Included samples remain available.</p>}
           {isAdmin && authenticated && <><div className="library-heading"><h3>Admin · pack visibility</h3><small>Hidden packs disappear for students and guests, but stay visible to you.</small></div><div className="bank-summary friendly admin-packs">{[...new Map(banks.map((bank) => [bank.name, bank])).values()].map((bank) => <article className={bank.hidden ? 'admin-pack-card is-hidden' : 'admin-pack-card'} key={bank.name}><span className="pack-icon">{bank.gameMode === 'RPS' ? '✊' : bank.isSample ? '★' : '✦'}</span><span><b>{bank.name}</b><small>{bank.gameMode === 'RPS' ? 'Player-vs-player mode' : bank.questionCount + ' questions'} · {bank.hidden ? 'Hidden from students' : 'Visible to everyone'}</small></span><button type="button" className={bank.hidden ? 'pack-toggle show' : 'pack-toggle'} onClick={async () => { const response = await fetch('/api/admin/packs/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: bank.name, hidden: !bank.hidden }) }); if (response.ok) { await loadBanks(); playSfx('click'); } else setError('Could not update pack visibility.'); }}>{bank.hidden ? '👁 Show' : 'Hide'}</button></article>)}</div></>}
         </>}
 
-        {canManagePacks && bankManagerView === 'create' && <form className="pack-builder" onSubmit={saveManualBank}>
-          <div className="manager-heading"><div><div className="eyebrow">CREATE IN ZEROSUM</div><h2>Build a challenge pack</h2><p>Add at least three questions. Mark one correct answer for each.</p></div><span>{draftQuestions.length}/{account?.limits.questionsPerBank ?? 0} questions</span></div>
+        {((canManagePacks && bankManagerView === 'create') || bankManagerView === 'edit') && <form className="pack-builder" onSubmit={bankManagerView === 'edit' ? saveEditedAndUse : saveManualBank}>
+          <div className="manager-heading"><div><div className="eyebrow">{bankManagerView === 'edit' ? (editOrigin === 'forge' ? 'REVIEW YOUR AI PACK ✦ ZERO SUM SENSEI' : 'VIEW / EDIT PACK') : 'CREATE IN ZEROSUM'}</div><h2>{bankManagerView === 'edit' ? 'Check every question before battle' : 'Build a challenge pack'}</h2><p>{bankManagerView === 'edit' ? 'Fix wording, shuffle the correct answer, improve explanations, remove or add questions - then save and use it.' : 'Add at least three questions. Mark one correct answer for each.'}</p></div><span>{draftQuestions.length} questions</span></div>
           <div className="pack-details"><label>Pack title<input autoFocus maxLength={80} value={bankName} onChange={(event) => setBankName(event.target.value)} placeholder="Example: Science Showdown" /></label><label>Description <small>Optional</small><input maxLength={300} value={bankDescription} onChange={(event) => setBankDescription(event.target.value)} placeholder="What will players practice?" /></label></div>
-          <div className="duplicate-setting"><label className="toggle"><input type="checkbox" checked={allowDuplicateQuestions} onChange={(event) => setAllowDuplicateQuestions(event.target.checked)} /><span><b>Allow repeated questions</b><small>Use this when you intentionally want the same question more than once. The Duplicate button turns this on automatically.</small></span></label></div>
+          {bankManagerView !== 'edit' && <div className="duplicate-setting"><label className="toggle"><input type="checkbox" checked={allowDuplicateQuestions} onChange={(event) => setAllowDuplicateQuestions(event.target.checked)} /><span><b>Allow repeated questions</b><small>Use this when you intentionally want the same question more than once. The Duplicate button turns this on automatically.</small></span></label></div>}
           <div className="question-editor-list">{draftQuestions.map((question, questionIndex) => <article className="question-editor" key={question.id}>
             <header><span>QUESTION {questionIndex + 1}</span><div className="question-actions"><button type="button" disabled={draftQuestions.length >= (account?.limits.questionsPerBank ?? 0)} onClick={() => duplicateDraftQuestion(question.id)}>Duplicate</button><button type="button" disabled={draftQuestions.length <= 3} onClick={() => setDraftQuestions((questions) => questions.filter((candidate) => candidate.id !== question.id))}>Remove</button></div></header>
             <label>Question<textarea maxLength={500} value={question.prompt} onChange={(event) => updateDraftQuestion(question.id, { prompt: event.target.value })} placeholder="Type your question here" /></label>
@@ -1734,7 +1771,7 @@ export function App() {
             <div className="question-notes"><label>Answer explanation <small>Optional</small><textarea maxLength={1000} value={question.explanation} onChange={(event) => updateDraftQuestion(question.id, { explanation: event.target.value })} placeholder="Explain why the answer is correct" /></label><label>Difficulty<select value={question.difficulty} onChange={(event) => updateDraftQuestion(question.id, { difficulty: event.target.value as DraftQuestion['difficulty'] })}><option value="basic">Quick answer</option><option value="scenario">Scenario</option></select></label></div>
           </article>)}</div>
           <button type="button" className="add-question" disabled={draftQuestions.length >= (account?.limits.questionsPerBank ?? 0)} onClick={() => setDraftQuestions((questions) => [...questions, createDraftQuestion()])}>＋ Add question</button>
-          <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save challenge pack'}</button></div>
+          {bankManagerView === 'edit' ? <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Back to packs</button><button type="button" className="secondary-action" disabled={savingBank} onClick={(event) => void saveEditedBank(event)}>{savingBank ? 'Saving…' : 'Save changes only'}</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save & use this pack ⚔'}</button></div> : <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save challenge pack'}</button></div>}
         </form>}
 
         {bankManagerView === 'ai' && isAdmin && authenticated && <form className="pack-import ai-forge" onSubmit={generateAiPack}>
