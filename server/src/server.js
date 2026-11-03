@@ -170,7 +170,7 @@ const server = http.createServer(async (request, response) => {
     return sendJson(response, 200, { entries });
   }
   if (request.method === 'GET' && url.pathname === '/api/tournaments/recent-winners') {
-    const entries = db.prepare('SELECT code, champion_name AS championName, champion_avatar AS championAvatar, bank_name AS bankName, player_count AS playerCount, rounds, ended_at AS endedAt FROM tournament_winners ORDER BY ended_at DESC, code DESC LIMIT 10').all();
+    const entries = db.prepare(`SELECT w.code, w.champion_name AS championName, w.champion_avatar AS championAvatar, COALESCE(b.name, w.bank_name) AS bankName, w.player_count AS playerCount, w.rounds, w.ended_at AS endedAt FROM tournament_winners w LEFT JOIN tournaments t ON t.code = w.code LEFT JOIN question_banks b ON b.id = t.bank_id ORDER BY w.ended_at DESC, w.code DESC LIMIT 10`).all();
     return sendJson(response, 200, { entries });
   }
   if (request.method === 'GET' && url.pathname.startsWith('/api/tournaments/') && url.pathname.endsWith('/history')) {
