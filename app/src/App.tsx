@@ -1208,6 +1208,11 @@ export function App() {
       return;
     }
     if (message.type === 'queueLeft') { setQueuePosition(undefined); return; }
+    if (message.type === 'resumeMiss') {
+      localStorage.removeItem('zerosum-code');
+      if (message.code) localStorage.removeItem(playerTokenKey(message.code));
+      return;
+    }
     setSnapshot((previous) => {
       if (previous?.question?.nonce !== message.question?.nonce) setAnswered(undefined);
       if (previous?.me && message.me && message.me.hp < previous.me.hp) {
@@ -1348,6 +1353,11 @@ export function App() {
         const savedHostCode = sessionStorage.getItem('zerosum-host-code');
         const urlCode = new URLSearchParams(location.search).get('code')?.toUpperCase();
         if (savedHostToken && urlCode && (!savedHostCode || savedHostCode === urlCode)) send('hostResume', { code: urlCode, hostToken: savedHostToken });
+        else if (!urlCode && localStorage.getItem('zerosum-code') && localStorage.getItem('zerosum-name')) {
+          const savedCode = localStorage.getItem('zerosum-code') ?? '';
+          setCode(savedCode);
+          send('resumeRun', { code: savedCode, playerId: clientId, playerToken: savedPlayerToken(savedCode) });
+        }
         else if (urlCode && localStorage.getItem('zerosum-code') === urlCode && localStorage.getItem('zerosum-name')) {
           send('join', {
             code: localStorage.getItem('zerosum-code'),

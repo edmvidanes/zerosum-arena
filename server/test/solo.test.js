@@ -155,3 +155,21 @@ test('a player cannot stack a second active solo run', () => {
     assert.doesNotThrow(() => ctx.game.createSoloRun(new FakeSocket(), { playerId: HUMAN, name: 'Ace', avatar: 'arena-02', bankId: 'bank-test', ladderLength: 5 }));
   } finally { cleanup(ctx); }
 });
+
+test('resumeRun reattaches a refreshed player to their active solo run', () => {
+  const ctx = setup();
+  try {
+    const socket = new FakeSocket();
+    ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', avatar: 'arena-02', bankId: 'bank-test', ladderLength: 5 });
+    const created = socket.messages.find((message) => message.type === 'soloCreated');
+    const refreshed = new FakeSocket();
+    ctx.game.resumeRun(refreshed, { code: created.code, playerId: HUMAN, playerToken: created.playerToken });
+    const snapshot = refreshed.messages.filter((message) => message.type === 'snapshot').at(-1);
+    assert.ok(snapshot);
+    assert.equal(snapshot.tournament.code, created.code);
+    assert.equal(refreshed.session.playerId, HUMAN);
+    const stranger = new FakeSocket();
+    ctx.game.resumeRun(stranger, { code: created.code, playerId: HUMAN, playerToken: 'wrong-token' });
+    assert.equal(stranger.messages.at(-1).type, 'resumeMiss');
+  } finally { cleanup(ctx); }
+});

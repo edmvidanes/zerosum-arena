@@ -223,6 +223,24 @@ export class ZerosumGame {
     this.hosts.get(code).add(ws);
   }
 
+  resumeRun(ws, message) {
+    const code = String(message.code ?? '').trim().toUpperCase();
+    const playerId = String(message.playerId ?? '');
+    const tournament = /^[A-Z0-9]{6}$/.test(code)
+      ? this.db.prepare('SELECT * FROM tournaments WHERE code = ?').get(code)
+      : undefined;
+    const player = tournament ? this.player(code, playerId) : undefined;
+    if (!tournament || tournament.phase === 'CANCELLED' || !player || !this.validPlayerToken(player, message.playerToken)) {
+      return this.send(ws, { type: 'resumeMiss', code });
+    }
+    ws.session = { role: 'PLAYER', code, playerId };
+    if (!this.playerSockets.has(code)) this.playerSockets.set(code, new Map());
+    const previous = this.playerSockets.get(code).get(playerId);
+    if (previous && previous !== ws && previous.readyState === 1) previous.close(4001, 'Session resumed elsewhere');
+    this.playerSockets.get(code).set(playerId, ws);
+    return this.send(ws, this.snapshot(code, playerId));
+  }
+
   join(ws, message) {
     const code = this.cleanCode(message.code);
     const name = this.cleanName(message.name);
@@ -923,6 +941,7 @@ export class ZerosumGame {
       case 'leaveChallengeQueue': return this.leaveChallengeQueue(ws, message);
       case 'challengeStatus': return this.challengeStatus(ws, message);
       case 'hostResume': return this.hostResume(ws, message.code, message.hostToken);
+      case 'resumeRun': return this.resumeRun(ws, message);
       case 'join': return this.join(ws, message);
       case 'startTournament': return this.start(ws, message);
       case 'cancelTournament': return this.cancel(ws, message);

@@ -174,6 +174,8 @@ export type ServerMessage = Snapshot | {
 } | {
   type: 'challengeMatched'; code: string; playerId: string;
 } | {
+  type: 'resumeMiss'; code: string;
+} | {
   type: 'queueLeft';
 } | {
   type: 'error'; message: string;
