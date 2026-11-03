@@ -8,7 +8,7 @@ import { openDatabase } from './database.js';
 import { ZerosumGame } from './game.js';
 import { log } from './logger.js';
 import { accountFromCookie, clearSessionCookie, ensureSeedAccounts, isAdminAccount, limitsFor, login, logout, publicAccount, sessionCookie } from './auth.js';
-import { createBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload, updateBank } from './banks.js';
+import { cleanupExpiredBanks, createBank, deleteBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload, updateBank } from './banks.js';
 import { aiEnabled, AI_MODEL, generateQuizPack } from './ai.js';
 import { excerptForModel, extractDocumentText } from './document.js';
 
@@ -203,9 +203,9 @@ const server = http.createServer(async (request, response) => {
   }
   if (request.method === 'GET' && url.pathname === '/api/banks') {
     if (!account) return sendJson(response, 401, { error: 'Sign in to manage challenge packs.' });
-    const banks = listBanks(db, account.id);
+    const banks = listBanks(db, account.id, identity.isAdmin);
     return sendJson(response, 200, {
-      banks: (publicBetaMode && !identity.authenticated ? banks.filter((bank) => Boolean(bank.isSample) || String(bank.description).startsWith('AI Forge')) : banks).filter((bank) => identity.isAdmin || !bank.hidden),
+      banks: (publicBetaMode && !identity.authenticated ? banks.filter((bank) => Boolean(bank.isSample)) : banks).filter((bank) => identity.isAdmin || !bank.hidden),
       limits: limitsFor(account.plan),
     });
   }
@@ -257,12 +257,19 @@ const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { bank });
     } catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
+  if (request.method === 'DELETE' && url.pathname.startsWith('/api/banks/')) {
+    if (!identity.authenticated || !account) return sendJson(response, 401, { error: 'Sign in to delete challenge packs.' });
+    try {
+      const bank = deleteBank(db, account, identity.isAdmin, url.pathname.split('/').pop());
+      return sendJson(response, 200, { ok: true, bank });
+    } catch (error) { return sendJson(response, 400, { error: error.message }); }
+  }
   if (request.method === 'POST' && url.pathname === '/api/banks/import') {
     if (!account) return sendJson(response, 401, { error: 'Sign in to import challenge packs.' });
     if (!identity.canManagePacks) return sendJson(response, 403, { error: 'Creating and importing challenge packs requires a signed-in paid host during public beta.' });
     try {
       const body = await readJson(request, 1100 * 1024);
-      const bank = createBank(db, account, limitsFor(account.plan), body.content ? parseBankUpload(body) : body);
+      const bank = createBank(db, account, limitsFor(account.plan), body.content ? { ...parseBankUpload(body), retention: body.retention } : body);
       return sendJson(response, 201, { bank });
     } catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
@@ -272,20 +279,29 @@ const server = http.createServer(async (request, response) => {
     if (!allowAttempt(tournamentCreationAttempts, 'ai:' + clientAddress(request), 6, 20 * 60 * 1000)) return sendJson(response, 429, { error: 'Too many AI requests from this network. Try again in a few minutes.' });
     try {
       const body = await readJson(request, 6 * 1024 * 1024);
-      let documentInfo;
+      cleanupExpiredBanks(db);
+      const ownedPacks = db.prepare('SELECT COUNT(*) AS count FROM question_banks WHERE owner_id=? AND is_sample=0').get(account.id).count;
+      const packLimit = Math.min(limitsFor(account.plan).banks, 20);
+      if (ownedPacks >= packLimit) return sendJson(response, 400, { error: `Pack limit reached: each account can keep up to ${packLimit} created packs. Delete an old pack to make room.` });
+      // Uploaded PDFs are processed in memory only: the file bytes and extracted
+      // text live just for this request and are never written to disk or stored.
       if (body.sourceFile?.contentBase64) {
         const extracted = await extractDocumentText(body.sourceFile);
-        body.sourceText = extracted.text; documentInfo = { pages: extracted.pages, characters: extracted.characters, fileName: String(body.sourceFile.name ?? 'document') };
-        if (!String(body.topic ?? '').trim()) body.topic = 'the uploaded document: ' + documentInfo.fileName.replace(/\.[^.]+$/, '');
+        body.sourceText = extracted.text;
+        body.sourceFile = undefined;
+        if (!String(body.topic ?? '').trim()) body.topic = 'the uploaded document: ' + String(extracted.name ?? 'lesson.pdf').replace(/\.[^.]+$/, '');
       }
       const generated = await generateQuizPack(body);
+      body.sourceText = ''; body.sourceFile = undefined;
       const questions = normalizeQuestions(generated.questions, 25);
       const cleanName = String(generated.name || body.topic || 'AI Quiz Pack').trim().slice(0, 80) || 'AI Quiz Pack';
-      const bank = { id: crypto.randomUUID(), name: cleanName, description: ('AI Forge - made with Meta ' + AI_MODEL + ' for ' + String(body.audience ?? 'Everyone')).slice(0, 300), questions };
-      const now = Date.now();
-      db.prepare('INSERT INTO question_banks (id,owner_id,name,description,version,question_count,content,created_at,updated_at,game_mode) VALUES (?,?,?,?,1,?,?,?,?,?)').run(bank.id, account.id, bank.name, bank.description, questions.length, JSON.stringify(questions), now, now, 'QUIZ');
-      db.prepare("DELETE FROM question_banks WHERE owner_id=? AND description LIKE 'AI Forge%' AND id NOT IN (SELECT id FROM question_banks WHERE owner_id=? AND description LIKE 'AI Forge%' ORDER BY created_at DESC LIMIT 20)").run(account.id, account.id);
-      return sendJson(response, 201, { bank: { id: bank.id, name: bank.name, description: bank.description, version: 1, questionCount: questions.length, createdAt: now, updatedAt: now, gameMode: 'QUIZ', isSample: 0 }, model: AI_MODEL, document: documentInfo });
+      const bank = createBank(db, account, limitsFor(account.plan), {
+        name: cleanName,
+        description: ('AI Forge - made with Meta ' + AI_MODEL + ' and ZeroSum Sensei').slice(0, 300),
+        questions,
+        retention: body.retention,
+      });
+      return sendJson(response, 201, { bank, model: AI_MODEL });
     } catch (error) { return sendJson(response, error.code === 'AI_NOT_CONFIGURED' ? 503 : 400, { error: error.message, code: error.code ?? 'AI_ERROR' }); }
   }
   if (request.method === 'POST' && ['/api/action', '/api/sync'].includes(url.pathname)) {

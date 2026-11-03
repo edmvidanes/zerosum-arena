@@ -29,7 +29,7 @@ export async function extractDocumentText(input) {
       pages.push(content.items.map((item) => item.str ?? '').join(' '));
     }
     const text = pages.join('\n').trim();
-    if (text.length < 80) throw new Error('That PDF looks scanned/image-only. Paste the text instead so the AI can read it.');
+    if (text.length < 80) throw new Error('That PDF looks scanned/image-only. Upload a text-based PDF so the AI can read the lesson.');
     return { text, pages: pdf.numPages, characters: text.length };
   }
   throw new Error('Only PDF lessons are accepted. Convert the file to PDF and try again.');

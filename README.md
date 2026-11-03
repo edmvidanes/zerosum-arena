@@ -19,7 +19,7 @@ Browser -> Nginx -> Node.js + React -> SQLite
 - Signed-in paid beta hosts can create and import private challenge packs; anonymous and free hosts cannot.
 - Anonymous and free beta hosts cannot inspect challenge answers. Signed-in paid test hosts can view answer keys, explanations, and questions used during a tournament.
 - **Ready-made learning library (11 packs, 300+ questions, every question has a teaching explanation):** Math Foundations, English Boost, Science Explorers, Philippine History & Civics, Money Smart (financial literacy), Job Ready (workplace skills), Information Security Foundations, Security Awareness, AWS Cloud Practitioner, Starter Mix, and Bato Bato Pick - built for teachers running class reviews, learners practicing solo, and everyone who wants trivia with a purpose.
-- **AI Pack Forge (Meta Muse Spark):** teachers type any topic - or paste their own lesson notes - and Meta's Muse Spark model (Meta Model API) generates a curriculum-friendly quiz pack with explanations. Every AI pack is validated by the same rules as hand-made packs before it can be played. Activates with a server-side MODEL_API_KEY from dev.meta.ai; ready-made packs work without it.
+- **AI Pack Forge (Meta Muse Spark):** teachers type a custom topic (for example "Science for Grade 6") or upload a lesson PDF, and Meta's Muse Spark model (Meta Model API) generates a curriculum-friendly quiz pack with explanations. Explicit topics are prohibited, uploaded PDFs are processed in memory and never stored, and every pack can be kept permanently or as a temporary 30-day pack. Every AI pack is validated by the same rules as hand-made packs before it can be played. Activates with a server-side MODEL_API_KEY from dev.meta.ai; ready-made packs work without it.
 - A fresh server starts on HTTP so it can be verified before DNS cutover. Enable HTTPS before collecting real accounts or sensitive data.
 
 ## Main features
@@ -46,9 +46,9 @@ Browser -> Nginx -> Node.js + React -> SQLite
 No payment is collected during the public beta. The current product model shown to testers is:
 
 - **Free — ₱0:** up to 10 players, 2 custom challenge packs, 50 questions per pack, and 100 custom questions total.
-- **Paid subscription — price to be announced:** up to 50 players, 25 private custom challenge packs, 500 questions per pack, 5,000 custom questions total, imports, and instructor answer/review tools.
+- **Paid subscription — price to be announced:** up to 50 players, 20 private custom challenge packs, 500 questions per pack, 5,000 custom questions total, imports, and instructor answer/review tools.
 
-Anonymous beta access temporarily receives the 50-player allowance with included packs, but does not receive custom-pack or answer-key access. Custom packs are scoped to their owning account and cannot be listed, selected, or inspected by other accounts. These limits and the paid price can change based on beta feedback.
+Anonymous beta access temporarily receives the 50-player allowance with included packs, but does not receive custom-pack or answer-key access. Custom packs are scoped to their owning account and cannot be listed, selected, or inspected by other accounts; owners (or an administrator) can delete them, and temporary packs are automatically deleted after 30 days. These limits and the paid price can change based on beta feedback.
 
 ## Requirements
 

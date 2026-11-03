@@ -1,5 +1,20 @@
 import crypto from 'node:crypto';
 import { parse } from 'csv-parse/sync';
+import { assertPackContentSafe } from './content-safety.js';
+
+export const MAX_PACKS_PER_OWNER = 20;
+export const PACK_RETENTION_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function normalizeRetention(value) {
+  return String(value ?? '').trim().toUpperCase() === 'PERMANENT' ? 'PERMANENT' : 'TEMPORARY';
+}
+
+export function cleanupExpiredBanks(db, now = Date.now()) {
+  return db.prepare(`DELETE FROM question_banks
+    WHERE is_sample=0 AND retention='TEMPORARY' AND expires_at IS NOT NULL AND expires_at<=?
+      AND NOT EXISTS (SELECT 1 FROM tournaments WHERE tournaments.bank_id=question_banks.id AND tournaments.phase NOT IN ('COMPLETE','CANCELLED'))`).run(now).changes;
+}
 
 function cleanText(value, label, maximum) {
   const result = String(value ?? '').trim().replace(/\s+/g, ' ');
@@ -63,12 +78,21 @@ export function parseBankUpload(input) {
   };
 }
 
-export function listBanks(db, accountId) {
-  return db.prepare(`SELECT id,name,description,version,question_count AS questionCount,created_at AS createdAt, EXISTS(SELECT 1 FROM hidden_packs h WHERE h.name=question_banks.name) AS hidden,
-    updated_at AS updatedAt,is_sample AS isSample,game_mode AS gameMode FROM question_banks WHERE owner_id=? ORDER BY is_sample DESC,updated_at DESC`).all(accountId);
+export function listBanks(db, accountId, isAdmin = false) {
+  cleanupExpiredBanks(db);
+  const select = `SELECT b.id,b.name,b.description,b.version,b.question_count AS questionCount,b.created_at AS createdAt,
+    EXISTS(SELECT 1 FROM hidden_packs h WHERE h.name=b.name) AS hidden,
+    b.updated_at AS updatedAt,b.is_sample AS isSample,b.game_mode AS gameMode,b.owner_id AS ownerId,
+    a.email AS ownerEmail,b.retention,b.expires_at AS expiresAt
+    FROM question_banks b LEFT JOIN accounts a ON a.id=b.owner_id`;
+  if (isAdmin) {
+    return db.prepare(`${select} WHERE b.is_sample=0 OR b.owner_id=? ORDER BY b.is_sample DESC,b.updated_at DESC`).all(accountId);
+  }
+  return db.prepare(`${select} WHERE b.owner_id=? ORDER BY b.is_sample DESC,b.updated_at DESC`).all(accountId);
 }
 
 export function getBank(db, accountId, bankId, anyOwner = false) {
+  cleanupExpiredBanks(db);
   const row = anyOwner
     ? db.prepare('SELECT * FROM question_banks WHERE id=?').get(bankId)
     : db.prepare('SELECT * FROM question_banks WHERE id=? AND owner_id=?').get(bankId, accountId);
@@ -84,25 +108,45 @@ export function updateBank(db, account, isAdmin, bankId, input) {
   const questions = normalizeQuestions(input.questions, 500, Boolean(input.allowDuplicates));
   const name = cleanText(input.name ?? existing.name, 'Pack name', 80);
   const description = String(input.description ?? existing.description ?? '').trim().slice(0, 300);
+  assertPackContentSafe({ name, description, questions });
   const now = Date.now();
-  db.prepare('UPDATE question_banks SET name=?,description=?,question_count=?,content=?,updated_at=? WHERE id=?')
-    .run(name, description, questions.length, JSON.stringify(questions), now, existing.id);
-  return { id: existing.id, name, description, version: existing.version, questionCount: questions.length, createdAt: existing.created_at, updatedAt: now, isSample: existing.is_sample, gameMode: existing.game_mode };
+  const retention = existing.is_sample ? 'PERMANENT' : (input.retention === undefined ? (existing.retention ?? 'PERMANENT') : normalizeRetention(input.retention));
+  const expiresAt = retention === 'PERMANENT' ? null
+    : (existing.retention === 'TEMPORARY' && existing.expires_at && existing.expires_at > now ? existing.expires_at : now + PACK_RETENTION_DAYS * DAY_MS);
+  db.prepare('UPDATE question_banks SET name=?,description=?,question_count=?,content=?,updated_at=?,retention=?,expires_at=? WHERE id=?')
+    .run(name, description, questions.length, JSON.stringify(questions), now, retention, expiresAt, existing.id);
+  return { id: existing.id, name, description, version: existing.version, questionCount: questions.length, createdAt: existing.created_at, updatedAt: now, isSample: existing.is_sample, gameMode: existing.game_mode, ownerId: existing.owner_id, retention, expiresAt };
 }
 
 export function createBank(db, account, limits, input) {
+  cleanupExpiredBanks(db);
+  const packLimit = Math.min(Number(limits.banks) || MAX_PACKS_PER_OWNER, MAX_PACKS_PER_OWNER);
   const existing = db.prepare('SELECT COUNT(*) AS count, COALESCE(SUM(question_count),0) AS total FROM question_banks WHERE owner_id=? AND is_sample=0').get(account.id);
-  if (existing.count >= limits.banks) throw new Error(`Your ${account.plan.toLowerCase()} plan allows ${limits.banks} challenge packs.`);
+  if (existing.count >= packLimit) throw new Error(`Pack limit reached: each account can keep up to ${packLimit} created packs. Delete an old pack to make room.`);
   const questions = normalizeQuestions(input.questions, limits.questionsPerBank, Boolean(input.allowDuplicates));
   if (existing.total + questions.length > limits.totalQuestions) throw new Error(`Your plan allows ${limits.totalQuestions} stored questions in total.`);
   const bank = {
     id: crypto.randomUUID(), name: cleanText(input.name, 'Pack name', 80),
     description: String(input.description ?? '').trim().slice(0, 300), questions,
   };
+  assertPackContentSafe(bank);
+  const retention = normalizeRetention(input.retention);
   const now = Date.now();
-  db.prepare(`INSERT INTO question_banks (id,owner_id,name,description,version,question_count,content,created_at,updated_at,game_mode)
-    VALUES (?,?,?,?,1,?,?,?,?, 'QUIZ')`).run(bank.id, account.id, bank.name, bank.description, questions.length, JSON.stringify(questions), now, now);
-  return { id: bank.id, name: bank.name, description: bank.description, version: 1, questionCount: questions.length, createdAt: now, updatedAt: now, gameMode: 'QUIZ' };
+  const expiresAt = retention === 'PERMANENT' ? null : now + PACK_RETENTION_DAYS * DAY_MS;
+  db.prepare(`INSERT INTO question_banks (id,owner_id,name,description,version,question_count,content,created_at,updated_at,game_mode,retention,expires_at)
+    VALUES (?,?,?,?,1,?,?,?,?, 'QUIZ',?,?)`).run(bank.id, account.id, bank.name, bank.description, questions.length, JSON.stringify(questions), now, now, retention, expiresAt);
+  return { id: bank.id, name: bank.name, description: bank.description, version: 1, questionCount: questions.length, createdAt: now, updatedAt: now, gameMode: 'QUIZ', ownerId: account.id, retention, expiresAt };
+}
+
+export function deleteBank(db, account, isAdmin, bankId) {
+  const existing = db.prepare('SELECT * FROM question_banks WHERE id=?').get(bankId);
+  if (!existing) throw new Error('Challenge pack not found.');
+  if (!isAdmin && existing.owner_id !== account.id) throw new Error('Challenge pack not found.');
+  if (existing.is_sample) throw new Error('Included packs are built into Zerosum and cannot be deleted.');
+  const active = db.prepare("SELECT 1 FROM tournaments WHERE bank_id=? AND phase NOT IN ('COMPLETE','CANCELLED') LIMIT 1").get(existing.id);
+  if (active) throw new Error('This pack is being used in an active game. Wait for the game to finish before deleting it.');
+  db.prepare('DELETE FROM question_banks WHERE id=?').run(existing.id);
+  return { id: existing.id, name: existing.name };
 }
 
 export function ensureSampleBanks(db, samples) {
@@ -117,13 +161,13 @@ export function ensureSampleBanks(db, samples) {
       const now = Date.now();
       const description = String(sample.description ?? sample.notice ?? '').trim().slice(0, 300);
       if (existing) {
-        db.prepare(`UPDATE question_banks SET description=?,question_count=?,content=?,updated_at=?,is_sample=1,game_mode=? WHERE id=?`)
+        db.prepare(`UPDATE question_banks SET description=?,question_count=?,content=?,updated_at=?,is_sample=1,game_mode=?,retention='PERMANENT',expires_at=NULL WHERE id=?`)
           .run(description, questions.length, JSON.stringify(questions), now, gameMode, existing.id);
         continue;
       }
       db.prepare(`INSERT INTO question_banks
-        (id,owner_id,name,description,version,question_count,content,created_at,updated_at,is_sample,game_mode)
-        VALUES (?,?,?,?,1,?,?,?,?,1,?)`)
+        (id,owner_id,name,description,version,question_count,content,created_at,updated_at,is_sample,game_mode,retention,expires_at)
+        VALUES (?,?,?,?,1,?,?,?,?,1,?,'PERMANENT',NULL)`)
         .run(crypto.randomUUID(), account.id, name, description, questions.length, JSON.stringify(questions), now, now, gameMode);
     }
   }

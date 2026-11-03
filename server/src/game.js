@@ -3,6 +3,7 @@ import { WebSocket } from 'ws';
 import { createGroups, difficultyFor, questionSeconds, resolveCombat, resolveRpsCombat } from './engine.js';
 import { hydrateMatch, parseJson } from './database.js';
 import { log } from './logger.js';
+import { cleanupExpiredBanks } from './banks.js';
 import { limitsFor } from './auth.js';
 import { BOT_TIERS, botAnswerDelayMs, botChoosesCorrect, botProfile } from './bots.js';
 
@@ -129,8 +130,9 @@ export class ZerosumGame {
       events: this.db.prepare('DELETE FROM events WHERE at < ?').run(before).changes,
       tournaments: this.db.prepare("DELETE FROM tournaments WHERE phase IN ('COMPLETE','CANCELLED') AND updated_at < ?").run(before).changes,
       sessions: this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(Date.now()).changes,
+      expiredPacks: cleanupExpiredBanks(this.db),
     }))();
-    if (result.events || result.tournaments || result.sessions) log('INFO', 'DATA_RETENTION_CLEANUP', { deleted: result });
+    if (result.events || result.tournaments || result.sessions || result.expiredPacks) log('INFO', 'DATA_RETENTION_CLEANUP', { deleted: result });
   }
 
   restoreLobbyTimers() {
@@ -164,7 +166,7 @@ export class ZerosumGame {
     const configuredSeconds = questionSeconds(typeof settings === 'object' ? settings.questionSeconds : 20);
     const configuredTone = arenaTone(typeof settings === 'object' ? settings.arenaTone : undefined);
     const bankId = String(settings.bankId ?? '');
-    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND owner_id=?').get(bankId, ws.account.id);
+    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND owner_id=? AND (expires_at IS NULL OR expires_at>?)').get(bankId, ws.account.id, Date.now());
     if (!bank) throw new Error('Select one of your challenge packs.');
     if (ws.restrictToSampleBanks && !bank.is_sample) throw new Error('Anonymous beta hosts can use included challenge packs only.');
     const maxPlayers = limitsFor(ws.account.plan).players;
@@ -542,8 +544,9 @@ export class ZerosumGame {
     if (!/^[a-f0-9-]{20,50}$/i.test(playerId)) throw new Error('Your player session is invalid. Reload and try again.');
     const name = this.cleanName(message.name);
     const avatar = this.cleanAvatar(message.avatar);
-    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND (is_sample=1 OR owner_id=?)').get(String(message.bankId ?? ''), ws.account?.id ?? '');
+    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND (is_sample=1 OR owner_id=?) AND (expires_at IS NULL OR expires_at>?)').get(String(message.bankId ?? ''), ws.account?.id ?? '', Date.now());
     if (!bank) throw new Error('Select one of the available challenge packs.');
+    if (ws.restrictToSampleBanks && !bank.is_sample) throw new Error('Sign in to play with custom packs. Included packs are open to everyone.');
     const ladderLength = Math.min(50, Math.max(5, Number(message.ladderLength) || 10));
     const feedbackMode = message.feedbackMode === 'EXAM' ? 'EXAM' : 'LEARN';
     const allowChallenge = Boolean(message.allowChallenge) && process.env.ENABLE_CHALLENGE_QUEUE !== 'false';
@@ -578,8 +581,9 @@ export class ZerosumGame {
     if (process.env.ENABLE_CHALLENGE_QUEUE === 'false') throw new Error('Challenge Queue is not enabled on this server.');
     const playerId = String(message.playerId ?? '');
     if (!/^[a-f0-9-]{20,50}$/i.test(playerId)) throw new Error('Your player session is invalid. Reload and try again.');
-    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND (is_sample=1 OR owner_id=?)').get(String(message.bankId ?? ''), ws.account?.id ?? '');
+    const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND (is_sample=1 OR owner_id=?) AND (expires_at IS NULL OR expires_at>?)').get(String(message.bankId ?? ''), ws.account?.id ?? '', Date.now());
     if (!bank) throw new Error('Select one of the available challenge packs.');
+    if (ws.restrictToSampleBanks && !bank.is_sample) throw new Error('Sign in to queue with custom packs. Included packs are open to everyone.');
     const queueToken = crypto.randomBytes(32).toString('base64url');
     const now = Date.now();
     this.db.prepare(`INSERT INTO challenge_queue (player_id, bank_id, name, avatar, token_hash, created_at, expires_at) VALUES (?,?,?,?,?,?,?)

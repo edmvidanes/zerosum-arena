@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AI_IDENTITY, parseAiPack } from '../src/ai.js';
+import { AI_IDENTITY, generateQuizPack, parseAiPack } from '../src/ai.js';
 import { normalizeQuestions } from '../src/banks.js';
 
 test('parseAiPack extracts JSON from model text', () => {
@@ -28,3 +28,8 @@ for (const file of ['math-foundations-bank.json','english-grammar-bank.json','sc
     assert.ok(questions.every((q) => q.explanation.length > 10), 'every question teaches');
   });
 }
+
+test('explicit topics are refused before any model call', async () => {
+  await assert.rejects(() => generateQuizPack({ topic: 'erotic sex stories' }), (err) => err.code === 'AI_EXPLICIT_CONTENT');
+  await assert.rejects(() => generateQuizPack({ topic: 'pornography quiz' }), (err) => err.code === 'AI_EXPLICIT_CONTENT');
+});

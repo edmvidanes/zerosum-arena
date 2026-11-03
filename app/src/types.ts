@@ -142,6 +142,10 @@ export interface BankSummary {
   isSample: number;
   hidden?: number;
   gameMode: 'QUIZ' | 'RPS';
+  ownerId?: string;
+  ownerEmail?: string;
+  retention?: 'TEMPORARY' | 'PERMANENT';
+  expiresAt?: number | null;
 }
 
 export interface ProgressionPayload {

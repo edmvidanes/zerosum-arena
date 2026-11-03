@@ -53,10 +53,11 @@ export function openDatabase(dataDir) {
       id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
       version INTEGER NOT NULL DEFAULT 1, question_count INTEGER NOT NULL, content TEXT NOT NULL,
       created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, is_sample INTEGER NOT NULL DEFAULT 0,
-      game_mode TEXT NOT NULL DEFAULT 'QUIZ',
+      game_mode TEXT NOT NULL DEFAULT 'QUIZ', retention TEXT NOT NULL DEFAULT 'PERMANENT', expires_at INTEGER,
       FOREIGN KEY (owner_id) REFERENCES accounts(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_banks_owner ON question_banks(owner_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_banks_expiry ON question_banks(expires_at);
   `);
   db.exec(`CREATE TABLE IF NOT EXISTS hidden_packs (name TEXT PRIMARY KEY, hidden_at INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS solo_leaderboard (
@@ -115,6 +116,16 @@ export function openDatabase(dataDir) {
   if (!bankColumns.some((column) => column.name === 'game_mode')) {
     db.exec("ALTER TABLE question_banks ADD COLUMN game_mode TEXT NOT NULL DEFAULT 'QUIZ'");
   }
+  if (!bankColumns.some((column) => column.name === 'retention')) {
+    db.exec("ALTER TABLE question_banks ADD COLUMN retention TEXT NOT NULL DEFAULT 'PERMANENT'");
+  }
+  if (!bankColumns.some((column) => column.name === 'expires_at')) {
+    db.exec('ALTER TABLE question_banks ADD COLUMN expires_at INTEGER');
+  }
+  db.exec("UPDATE question_banks SET retention='PERMANENT', expires_at=NULL WHERE is_sample=1");
+  // Temporary created packs live for 30 days; never pull a pack from an active game.
+  db.prepare(`DELETE FROM question_banks WHERE is_sample=0 AND retention='TEMPORARY' AND expires_at IS NOT NULL AND expires_at<=?
+    AND NOT EXISTS (SELECT 1 FROM tournaments WHERE tournaments.bank_id=question_banks.id AND tournaments.phase NOT IN ('COMPLETE','CANCELLED'))`).run(Date.now());
   return db;
 }
 

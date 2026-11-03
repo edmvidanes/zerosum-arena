@@ -21,14 +21,14 @@ ZeroSum Arena makes learning fun for quizzes: it turns any quiz into a Dragon Ba
 4. Check Recent champions and the live challenger board on the homepage.
 
 ## Tech
-React 19 + TypeScript, Node WebSocket server, SQLite, Docker on EC2 (Nginx), original code-drawn SVG fighters (no copyrighted assets), synthesized WebAudio SFX, Meta Model API for AI generation. DB is deliberately lean: solo leaderboard keeps top 5, hosted champions keep last 10, AI packs are pruned to the newest 20 per host.
+React 19 + TypeScript, Node WebSocket server, SQLite, Docker on EC2 (Nginx), original code-drawn SVG fighters (no copyrighted assets), synthesized WebAudio SFX, Meta Model API for AI generation. DB and storage are deliberately lean: solo leaderboard keeps top 5, hosted champions keep last 10, each account keeps at most 20 created packs, temporary packs auto-delete after 30 days, uploaded PDFs are processed in memory and never stored, and container/app logs are size-rotated.
 
 ## Admin testing setup (current phase)
 - The AI has a fixed identity - **ZeroSum Sensei**, a quiz-and-learning specialist. Its system prompt restricts it to educational quiz generation only; out-of-scope requests return a refusal instead of content.
 - Temporary admin: the seeded paid account dlsu@zerosum.website (override with ADMIN_EMAILS, comma-separated).
 - AI Pack Forge is visible and callable ONLY for a signed-in admin right now; students/guests see the ready-made library instead.
 - The admin can hide/show any pack by name (Pack Manager -> Admin - pack visibility); hidden packs disappear for everyone except the admin.
-- Forge accepts a topic, pasted notes, or an uploaded PDF (up to 4 MB / 60 pages; PDF-only by design). Text extraction runs locally for free; only an evenly-sampled 8,000-character excerpt is sent to Muse Spark to keep token cost low.
+- Forge accepts a custom topic or an uploaded PDF (up to 4 MB / 60 pages; PDF-only by design). Explicit topics are refused before any model call. Text extraction runs locally for free; only an evenly-sampled 8,000-character excerpt is sent to Muse Spark to keep token cost low.
 - Signing in lands on the normal homepage (not the pack manager).
 
 ## Setup for judges / self-hosting

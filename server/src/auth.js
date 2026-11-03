@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 const sessionLifetimeMs = 7 * 24 * 60 * 60 * 1000;
 const planLimits = {
   FREE: { players: 10, banks: 2, questionsPerBank: 50, totalQuestions: 100 },
-  PAID: { players: 50, banks: 25, questionsPerBank: 500, totalQuestions: 5000 },
+  PAID: { players: 50, banks: 20, questionsPerBank: 500, totalQuestions: 5000 },
 };
 
 const tokenHash = (value) => crypto.createHash('sha256').update(value).digest('hex');

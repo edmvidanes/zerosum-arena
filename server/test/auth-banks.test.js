@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { openDatabase } from '../src/database.js';
 import { accountFromCookie, ensureSeedAccounts, limitsFor, login } from '../src/auth.js';
-import { createBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload } from '../src/banks.js';
+import { cleanupExpiredBanks, createBank, deleteBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload } from '../src/banks.js';
 
 function temporaryDatabase() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'zerosum-auth-'));
@@ -91,4 +91,54 @@ test('included samples preserve AWS domains and do not consume custom pack limit
   } finally {
     db.close(); fs.rmSync(directory, { recursive: true, force: true });
   }
+});
+
+
+test('created packs are capped at 20 per owner even on higher plan limits', () => {
+  const { directory, db } = temporaryDatabase();
+  try {
+    const account = { id: 'cap-owner', plan: 'PAID' };
+    db.prepare(`INSERT INTO accounts (id,email,display_name,plan,password_salt,password_hash,created_at) VALUES (?,?,?,?,?,?,?)`)
+      .run(account.id, 'cap@test.local', 'Cap Host', account.plan, 'salt', 'hash', Date.now());
+    assert.equal(limitsFor('PAID').banks, 20);
+    const limits = { banks: 25, questionsPerBank: 50, totalQuestions: 5000 };
+    const questions = (n) => [1, 2, 3].map((i) => ({ prompt: `Cap ${n} question ${i}?`, options: ['a', 'b'], correctIndex: 0, explanation: 'cap check' }));
+    for (let index = 0; index < 20; index += 1) createBank(db, account, limits, { name: `Cap Pack ${index}`, questions: questions(index), retention: 'PERMANENT' });
+    assert.throws(() => createBank(db, account, limits, { name: 'One Too Many', questions: questions(99) }), /up to 20 created packs/);
+  } finally { db.close(); fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('temporary packs expire after 30 days and owners or admins can delete packs', () => {
+  const { directory, db } = temporaryDatabase();
+  try {
+    const mk = (id, email) => { db.prepare(`INSERT INTO accounts (id,email,display_name,plan,password_salt,password_hash,created_at) VALUES (?,?,?,?,?,?,?)`).run(id, email, email, 'PAID', 's', 'h', Date.now()); return { id, plan: 'PAID' }; };
+    const owner = mk('ret-owner', 'ret@test.local'); const other = mk('ret-other', 'other2@test.local');
+    const questions = (n) => [1, 2, 3].map((i) => ({ prompt: `Retention ${n} question ${i}?`, options: ['a', 'b'], correctIndex: 0, explanation: 'retention check' }));
+    const temp = createBank(db, owner, limitsFor('PAID'), { name: 'Temp Pack', questions: questions(1), retention: 'TEMPORARY' });
+    assert.equal(temp.retention, 'TEMPORARY');
+    assert.ok(temp.expiresAt > Date.now() + 29 * 24 * 60 * 60 * 1000);
+    assert.ok(temp.expiresAt < Date.now() + 31 * 24 * 60 * 60 * 1000);
+    const permanent = createBank(db, owner, limitsFor('PAID'), { name: 'Keep Pack', questions: questions(2), retention: 'PERMANENT' });
+    assert.equal(permanent.expiresAt, null);
+    db.prepare('UPDATE question_banks SET expires_at=? WHERE id=?').run(Date.now() - 1000, temp.id);
+    assert.equal(cleanupExpiredBanks(db), 1);
+    assert.throws(() => getBank(db, owner.id, temp.id), /not found/i);
+    assert.throws(() => deleteBank(db, other, false, permanent.id), /not found/i);
+    assert.equal(deleteBank(db, other, true, permanent.id).name, 'Keep Pack');
+    const own = createBank(db, owner, limitsFor('PAID'), { name: 'Own Delete', questions: questions(3) });
+    assert.equal(deleteBank(db, owner, false, own.id).id, own.id);
+  } finally { db.close(); fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('explicit pack content is rejected', () => {
+  const { directory, db } = temporaryDatabase();
+  try {
+    const account = { id: 'safe-owner', plan: 'PAID' };
+    db.prepare(`INSERT INTO accounts (id,email,display_name,plan,password_salt,password_hash,created_at) VALUES (?,?,?,?,?,?,?)`)
+      .run(account.id, 'safe@test.local', 'Safe Host', account.plan, 'salt', 'hash', Date.now());
+    assert.throws(() => createBank(db, account, limitsFor('PAID'), {
+      name: 'Bad Pack',
+      questions: [1, 2, 3].map((i) => ({ prompt: `erotic question ${i}?`, options: ['a', 'b'], correctIndex: 0, explanation: 'no' })),
+    }), (error) => error.code === 'AI_EXPLICIT_CONTENT');
+  } finally { db.close(); fs.rmSync(directory, { recursive: true, force: true }); }
 });
