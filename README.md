@@ -4,12 +4,6 @@
 
 ▶ **Play it live: [zerosum.website](https://zerosum.website)** — no downloads, works on phones.
 
-## Watch the 60-second intro
-
-[![ZeroSum Arena - 60-second hype intro](docs/hype-poster.jpg)](docs/zerosum-hype-60s.mp4)
-
-**[Watch the 60-second intro](docs/zerosum-hype-60s.mp4)** - real gameplay from zerosum.website: a full 50-player hosted tournament, Solo Arcade streak battles, live challengers, and the AI Pack Forge with ZeroSum Sensei (Meta Muse Spark), including its classroom guardrails.
-
 A host picks a challenge pack, players join with a six-letter code (no student accounts), and everyone battles with three HP until one champion remains. Practicing alone? Solo Arcade pits you against bot rivals in a streak ladder.
 
 
@@ -48,7 +42,7 @@ npm start
 
 Then open http://localhost:3000. The server seeds the ready-made packs automatically.
 
-Optional features are switched on with environment variables (see `.env.local.example`):
+Optional features are switched on with environment variables (see `.env.example`):
 
 | Variable | Enables |
 |---|---|
@@ -56,7 +50,7 @@ Optional features are switched on with environment variables (see `.env.local.ex
 | `MODEL_API_KEY` | AI Pack Forge (Meta Model API key from dev.meta.ai) |
 | `ADMIN_EMAILS` | Admin rights (pack visibility tools) for those account emails |
 
-Deploying to a server? Follow [INSTALL.md](INSTALL.md) — one Docker command from your machine. More background for judges is in [HACKATHON.md](HACKATHON.md).
+Deploying to your own server? Follow [INSTALL.md](INSTALL.md) — one Docker command. More background for judges is in [HACKATHON.md](HACKATHON.md).
 
 ## Tech stack
 

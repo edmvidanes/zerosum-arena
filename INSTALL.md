@@ -1,174 +1,80 @@
-# Zerosum installation
+# ZeroSum Arena - installation
 
-## 1. Prepare the EC2 instance
+ZeroSum Arena is a self-contained web app: a Node.js server serves the built
+React client, runs the real-time game engine (WebSocket with HTTP fallback),
+and stores data in a single SQLite file. No external database is required.
 
-Use Amazon Linux 2023 with:
+## Run locally (development)
 
-- at least 1 GB RAM and 8 GB storage;
-- inbound TCP 80 from the intended testers; and
-- inbound TCP 22 restricted to the administrator's IP.
-
-The installer adds a 1 GB swap file on small instances, installs Docker and Docker Compose, enables daily backups, and starts the containers automatically after a restart.
-
-The computer used to deploy must have Node.js 20 or newer, npm, `tar`, `ssh`, and `scp`. Keep the EC2 private key on that computer and do not copy it to the server or repository.
-
-## 2. Create the private server configuration
-
-This section is required once on every new EC2 instance. Connect to the server:
-
-```bash
-ssh -i /path/to/zerosum.pem ec2-user@EC2_PUBLIC_IP
-```
-
-Create the protected configuration directory and file:
-
-```bash
-sudo install -d -o root -g root -m 0700 /etc/zerosum
-sudo install -o root -g root -m 0600 /dev/null /etc/zerosum/zerosum.env
-sudoedit /etc/zerosum/zerosum.env
-```
-
-Enter the following values in the editor:
-
-```dotenv
-PUBLIC_BETA_MODE=true
-PUBLIC_BETA_MAX_ACTIVE_TOURNAMENTS=25
-# Comma-separated account emails that receive admin rights.
-ADMIN_EMAILS=you@example.com
-# Optional, see below: GOOGLE_CLIENT_ID and MODEL_API_KEY.
-```
-
-Save the file and verify its permissions without displaying its contents:
-
-```bash
-sudo chown root:root /etc/zerosum/zerosum.env
-sudo chmod 0600 /etc/zerosum/zerosum.env
-sudo stat -c '%a %U:%G %n' /etc/zerosum/zerosum.env
-```
-
-The result should begin with `600 root:root`. Never commit or copy this completed file into the repository.
-
-All host accounts are equal - there are no account tiers. Anyone can sign up with Google sign-in (below); signed-in hosts can create and import private packs, inspect answer keys, and review questions used during a tournament. Guests can open a lobby with the included packs but cannot create, edit or inspect pack contents. Custom packs remain scoped to their owning account.
-
-Accounts are created on first sign-in, so no account credentials live in this file. The only secrets it should hold are API keys (for example `MODEL_API_KEY`). The file is root-only (`600 root:root`) - root on the host and anyone who can run Docker commands can read container environment, so protect SSH access, and rotate any key that may have been exposed. For larger deployments, inject the same variables from AWS Secrets Manager or SSM Parameter Store instead. If the environment file already exists, leave it in place; deployments do not overwrite it.
-
-### Optional: Google sign-in for hosts
-
-The easy way: run `powershell -ExecutionPolicy Bypass -File .\scripts\setup-google-signin.ps1`, paste your Client ID when prompted (everything else defaults correctly), and the script deploys, writes `GOOGLE_CLIENT_ID` on the server, restarts the app, and verifies the live site. The manual steps it automates are:
-
-Hosts can also sign in with Google (players still join anonymously with a game code). To enable it:
-
-1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an **OAuth 2.0 Client ID** of type **Web application**. No client secret is needed — ZeroSum uses Google Identity Services ID tokens, not an OAuth redirect flow.
-2. Under **Authorized JavaScript origins**, add every origin that serves the app (for example `https://zerosum.website` and, for local development, `http://localhost:5173`). No redirect URI is required.
-3. Add the client ID to the environment file and restart the server:
-
-```dotenv
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-```
-
-The login form then shows Google's official sign-in button. The server verifies the returned ID token with Google (audience, issuer, expiry, verified email) before issuing the usual `zerosum_session` cookie. A first Google sign-in creates the host account; if the verified email matches an existing password account, the Google identity is linked to that account instead. Leave `GOOGLE_CLIENT_ID` empty to hide the button.
-
-Every signed-in host (Google or email) can create, import and edit packs and use the AI Pack Forge; the included default packs (Bato Bato Pick, AWS Cloud Practitioner Practice, Information Security Awareness unless an admin hides it) are shared with all accounts, including accounts created after startup. The Forge is limited to 5 generated packs per account per week (Monday 00:00 to Monday 00:00 server time).
-
-## 3. Deploy from your computer
-
-Run one of these commands from the Zerosum repository on your workstation. The scripts test the project, upload it over SSH, and install it on EC2.
-
-Windows PowerShell:
+Requirements: Node.js 20+.
 
 ```powershell
-.\scripts\deploy-docker.ps1 -Ec2Host "EC2_PUBLIC_IP" -KeyPath ".\zerosum.pem"
+# Windows quick start (creates .env.local from .env.example on first run)
+.\scripts\run-local.ps1
 ```
-
-Linux or macOS:
 
 ```bash
-chmod 600 ~/.ssh/zerosum.pem
-chmod +x scripts/deploy-docker.sh
-./scripts/deploy-docker.sh --host "EC2_PUBLIC_IP" --key ~/.ssh/zerosum.pem
+# Any platform
+npm ci
+npm run build
+npm start
 ```
 
-Add `--user USERNAME` to the Bash command when the SSH user is not `ec2-user`.
+Open http://localhost:3000. The server seeds the ready-made challenge packs
+automatically on first start.
 
-## 4. Verify
-
-Open `http://EC2_PUBLIC_IP` in a browser. On the server, check:
+Local Docker option (no Node install):
 
 ```bash
-curl -L http://127.0.0.1/api/health
-cd /opt/zerosum/current
-sudo docker compose ps
-sudo docker compose logs --tail=100 app nginx
+cp .env.example .env.local
+docker compose -f compose.local.yaml up --build   # http://localhost:8080
 ```
 
-Both containers should be running and the health endpoint should return `"status":"ok"`.
+## Configuration
 
-The bundled Nginx limits are sized to tolerate a classroom sharing one public/NAT address. Do not lower the per-IP WebSocket limit below the expected number of students. For public SaaS deployment, use AWS WAF with CloudFront or an Application Load Balancer; EC2 security groups and application limits are not substitutes for upstream DDoS protection.
+Copy `.env.example` to `.env.local` (local) or `.env` (Docker self-host) and
+fill in only what you need. Never commit a filled-in file.
 
-## Common operations
+| Variable | Purpose |
+| --- | --- |
+| `GOOGLE_CLIENT_ID` | Enables "Continue with Google" host sign-in. Create an OAuth 2.0 Web Client ID in Google Cloud Console and add every origin that serves the app (for example `https://your-domain.example`, plus `http://localhost:3000` for local development) under Authorized JavaScript origins. No client secret is needed; the server verifies the ID token before creating a session. Leave empty to hide the button. |
+| `MODEL_API_KEY` | Enables the AI Pack Forge. Create the key in the Meta Model API dashboard at dev.meta.ai. The Forge ("ZeroSum Sensei") uses Muse Spark (`muse-spark-1.3` by default; override with `META_MODEL`) and only generates educational quizzes. PDFs are processed in memory and never stored. Leave empty to disable the Forge. |
+| `ADMIN_EMAILS` | Comma-separated account emails that receive admin tools (pack visibility). All other host accounts are equal - there are no tiers. |
 
-Follow logs:
+After changing environment values, restart the server (or recreate the
+container) so the new values take effect.
+
+## Deploy on your own server (Docker)
+
+Any Linux host with Docker Engine and Docker Compose v2 works:
 
 ```bash
-cd /opt/zerosum/current
-sudo docker compose logs -f app nginx
+git clone <this-repo> zerosum-arena
+cd zerosum-arena
+cp .env.example .env   # fill in your values
+docker compose up -d --build
+curl http://127.0.0.1:3000/api/health
 ```
 
-Restart the application:
+Game data (accounts, packs, leaderboard history) persists in the
+`zerosum_data` Docker volume. To update later:
 
 ```bash
-cd /opt/zerosum/current
-sudo docker compose restart
+git pull
+docker compose up -d --build
 ```
 
-Run a backup:
+For public use, put the app behind an HTTPS reverse proxy of your choice
+(Caddy, Nginx, a cloud load balancer, ...). The proxy must forward normal
+HTTP traffic and WebSocket upgrades on `/ws` to port 3000, and allow request
+bodies up to 6 MB so PDF lessons can reach the Forge. Add your public origin
+to the Google client's Authorized JavaScript origins.
 
-```bash
-sudo systemctl start zerosum-backup.service
-```
+## Data and resource notes
 
-Runtime data remains in `/var/lib/zerosum`, and backups are stored in `/var/backups/zerosum` for 14 days.
-
-If the public IP changes, redeployment is unnecessary. Open the new IP or update DNS. For a new release, pass the new IP to the same deployment command.
-
-## Redeploy or move to another EC2 instance
-
-For an ordinary release on the same server, rerun the deployment command in section 3. The installer keeps the private environment file, database, backups, and TLS certificates outside the versioned release directory.
-
-For a new EC2 instance:
-
-1. complete sections 1 and 2 on the new server;
-2. run the normal deployment command so the containers and persistent directories are created;
-3. if this is a migration, stop the containers, restore the existing database as `/var/lib/zerosum/zerosum.sqlite`, set its owner to `1000:1000`, and restart the containers before opening the application to users;
-4. verify HTTP, login, and WebSocket access; and
-5. update DNS only after verification succeeds.
-
-A fresh installation without the previous SQLite database creates only the two accounts from `/etc/zerosum/zerosum.env` and new copies of the included sample packs. It does not carry over private packs, tournaments, or accounts created on another server.
-
-The current HTTP setup is for beta testing only. Add a stable domain and HTTPS before enabling sign-in or storing real customer data.
-
-## Enable `zerosum.website` HTTPS
-
-1. Assign an Elastic IP to the EC2 instance.
-2. At the domain registrar, replace the parking records with:
-   - `A`: host `@`, value set to the Elastic IP.
-   - `CNAME`: host `www`, value `zerosum.website`.
-3. Allow inbound TCP 80 and 443 in the EC2 security group. Keep SSH restricted to the administrator's IP.
-4. Wait until both names resolve to the EC2 address.
-5. Deploy the current version using the normal deployment command above.
-6. Connect to EC2 and issue the certificate using an email that can receive expiration notices:
-
-```bash
-cd /opt/zerosum/current
-sudo bash ops/enable-https.sh YOUR_EMAIL_ADDRESS
-```
-
-The script requests a trusted Let's Encrypt certificate for `zerosum.website` and `www.zerosum.website`, redirects HTTP and public-IP requests to `https://zerosum.website`, validates the Nginx configuration, and installs automatic renewal.
-
-Verify both endpoints:
-
-```bash
-curl -L http://zerosum.website/api/health
-curl https://zerosum.website/api/health
-sudo systemctl status zerosum-tls-renew.timer
-```
+- Solo leaderboard keeps only the top 5 streaks (minimum streak of 2,
+  forfeited runs excluded); hosted-tournament champions keep the last 10.
+- Each account keeps at most 20 created packs; temporary packs auto-delete
+  after 30 days.
+- Uploaded lesson PDFs (max 4 MB / 60 pages) are parsed in memory; only a
+  short excerpt is sent to the AI model, and files are never written to disk.

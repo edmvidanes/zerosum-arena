@@ -5,7 +5,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $projectRoot
 try {
   $envFile = Join-Path $projectRoot ".env.local"
-  if (-not (Test-Path -LiteralPath $envFile)) { Copy-Item (Join-Path $projectRoot ".env.local.example") $envFile; Write-Host "Created .env.local from the example template." }
+  if (-not (Test-Path -LiteralPath $envFile)) { Copy-Item (Join-Path $projectRoot ".env.example") $envFile; Write-Host "Created .env.local from the example template." }
   foreach ($line in Get-Content -LiteralPath $envFile) {
     if ($line -match '^\s*([^#][^=]*)=(.*)$') { Set-Item -Path "Env:$($Matches[1].Trim())" -Value $Matches[2].Trim() }
   }

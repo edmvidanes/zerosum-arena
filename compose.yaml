@@ -7,44 +7,16 @@ services:
     image: zerosum-app:local
     restart: unless-stopped
     env_file:
-      - /etc/zerosum/zerosum.env
-    volumes:
-      - /var/lib/zerosum:/data
-    security_opt:
-      - no-new-privileges:true
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: 640m
-    networks:
-      - zerosum
-
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_healthy
+      - path: .env
+        required: false
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DATA_DIR: /data
     ports:
-      - "80:80"
-      - "443:443"
+      - "${ZEROSUM_PORT:-3000}:3000"
     volumes:
-      - ./ops/nginx.docker.conf:/etc/nginx/nginx.conf:ro
-      - /etc/zerosum/nginx-conf.d:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
-    security_opt:
-      - no-new-privileges:true
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    mem_limit: 96m
-    networks:
-      - zerosum
+      - zerosum_data:/data
 
-networks:
-  zerosum:
+volumes:
+  zerosum_data:

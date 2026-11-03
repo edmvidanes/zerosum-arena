@@ -21,7 +21,7 @@ ZeroSum Arena makes learning fun for quizzes: it turns any quiz into a Dragon Ba
 4. Check Recent champions and the live challenger board on the homepage.
 
 ## Tech
-React 19 + TypeScript, Node WebSocket server, SQLite, Docker on EC2 (Nginx), original code-drawn SVG fighters (no copyrighted assets), synthesized WebAudio SFX, Meta Model API for AI generation. DB and storage are deliberately lean: solo leaderboard keeps top 5, hosted champions keep last 10, each account keeps at most 20 created packs, temporary packs auto-delete after 30 days, uploaded PDFs are processed in memory and never stored, and container/app logs are size-rotated.
+React 19 + TypeScript, Node WebSocket server, SQLite, Docker behind an Nginx reverse proxy, original code-drawn SVG fighters (no copyrighted assets), synthesized WebAudio SFX, Meta Model API for AI generation. DB and storage are deliberately lean: solo leaderboard keeps top 5, hosted champions keep last 10, each account keeps at most 20 created packs, temporary packs auto-delete after 30 days, uploaded PDFs are processed in memory and never stored, and container/app logs are size-rotated.
 
 ## Accounts and admin
 - The AI has a fixed identity - **ZeroSum Sensei**, a quiz-and-learning specialist. Its system prompt restricts it to educational quiz generation only; out-of-scope requests return a refusal instead of content.
@@ -32,4 +32,4 @@ React 19 + TypeScript, Node WebSocket server, SQLite, Docker on EC2 (Nginx), ori
 - Signing in lands on the normal homepage (not the pack manager).
 
 ## Setup for judges / self-hosting
-See README.md and DEPLOYMENT.md. To activate AI Pack Forge: get a key at dev.meta.ai (API keys start with LLM_), set MODEL_API_KEY in /etc/zerosum/zerosum.env, redeploy. Optional: META_MODEL (default muse-spark-1.3).
+See README.md and INSTALL.md. To activate AI Pack Forge: get a key at dev.meta.ai, set MODEL_API_KEY in your server environment (see .env.example), and restart the app. Optional: META_MODEL (default muse-spark-1.3). Never commit a real key.
