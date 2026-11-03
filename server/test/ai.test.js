@@ -33,3 +33,11 @@ test('explicit topics are refused before any model call', async () => {
   await assert.rejects(() => generateQuizPack({ topic: 'erotic sex stories' }), (err) => err.code === 'AI_EXPLICIT_CONTENT');
   await assert.rejects(() => generateQuizPack({ topic: 'pornography quiz' }), (err) => err.code === 'AI_EXPLICIT_CONTENT');
 });
+
+test('question normalization is idempotent (Forge saves through createBank)', () => {
+  const raw = [1, 2, 3].map((i) => ({ prompt: `Idempotent question ${i}?`, options: ['a', 'b', 'c', 'd'], correctIndex: 1, explanation: 'idempotency check' }));
+  const once = normalizeQuestions(raw, 25);
+  const twice = normalizeQuestions(once, 500);
+  assert.equal(twice.length, 3);
+  assert.equal(twice[0].text, 'Idempotent question 1?');
+});

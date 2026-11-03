@@ -27,7 +27,7 @@ export function normalizeQuestions(input, maximum, allowDuplicates = false) {
   if (input.length > maximum) throw new Error(`This plan allows up to ${maximum} questions per challenge pack.`);
   const seen = new Set();
   return input.map((item, index) => {
-    const prompt = cleanText(item.prompt ?? item.question ?? item.q, `Question ${index + 1}`, 500);
+    const prompt = cleanText(item.prompt ?? item.question ?? item.q ?? item.text, `Question ${index + 1}`, 500);
     const rawOptions = item.options ?? item.o;
     if (!Array.isArray(rawOptions) || rawOptions.length < 2 || rawOptions.length > 6) throw new Error(`Question ${index + 1} must have 2–6 options.`);
     const options = rawOptions.map((option, optionIndex) => cleanText(option, `Question ${index + 1}, option ${optionIndex + 1}`, 200));
