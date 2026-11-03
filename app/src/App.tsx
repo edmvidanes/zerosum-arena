@@ -402,6 +402,47 @@ function DamageOverlay({ amount, player }: { amount: number; player?: PublicPlay
   </div>;
 }
 
+
+function packSourceLabel(bank: BankSummary, accountId?: string) {
+  if (bank.isSample) return 'Included';
+  if (bank.ownerId && accountId && bank.ownerId === accountId) return String(bank.description ?? '').startsWith('AI Forge') ? 'AI-forged' : 'Your pack';
+  return 'Your pack';
+}
+function packRetentionLabel(bank: BankSummary) {
+  if (bank.isSample) return 'Always available';
+  if (bank.retention === 'TEMPORARY') return bank.expiresAt ? `Expires ${new Date(bank.expiresAt).toLocaleDateString()}` : 'Temporary · 30 days';
+  return 'Permanent';
+}
+function PackPicker({ banks, selectedId, onSelect, accountId }: { banks: BankSummary[]; selectedId: string; onSelect: (id: string) => void; accountId?: string }) {
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<'ALL' | 'INCLUDED' | 'MINE' | 'PVP'>('ALL');
+  const visible = banks.filter((bank) => {
+    if (filter === 'INCLUDED' && !bank.isSample) return false;
+    if (filter === 'MINE' && (bank.isSample || bank.ownerId !== accountId)) return false;
+    if (filter === 'PVP' && bank.gameMode !== 'RPS') return false;
+    return bank.name.toLowerCase().includes(query.trim().toLowerCase());
+  });
+  const selected = banks.find((bank) => bank.id === selectedId);
+  const chips: Array<{ id: typeof filter; label: string }> = [{ id: 'ALL', label: 'All packs' }, { id: 'INCLUDED', label: 'Included' }, { id: 'MINE', label: 'My packs' }, { id: 'PVP', label: 'PvP' }];
+  return <div className="pack-picker">
+    <div className="pack-picker-toolbar">
+      <label className="pack-search"><span aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search packs…" aria-label="Search packs" /></label>
+      <div className="pack-filters" role="group" aria-label="Filter packs">{chips.map((chip) => <button type="button" key={chip.id} className={filter === chip.id ? 'selected' : ''} aria-pressed={filter === chip.id} onClick={() => setFilter(chip.id)}>{chip.label}</button>)}</div>
+    </div>
+    {visible.length ? <div className="pack-picker-grid">{visible.map((bank) => {
+      const isSelected = bank.id === selectedId;
+      const source = packSourceLabel(bank, accountId);
+      return <button type="button" key={bank.id} className={isSelected ? 'pack-card selected' : 'pack-card'} aria-pressed={isSelected} onClick={() => { onSelect(bank.id); playSfx('click'); }}>
+        <span className="pack-card-top"><span className="pack-icon">{bank.gameMode === 'RPS' ? '✊' : bank.isSample ? '★' : '✦'}</span><span className="pack-badge">{bank.gameMode === 'RPS' ? 'PvP mode' : source}</span><span className="pack-check" aria-hidden="true">{isSelected ? '✓' : ''}</span></span>
+        <b className="pack-card-title">{bank.name}</b>
+        <span className="pack-card-meta"><span>{bank.gameMode === 'RPS' ? 'Player vs player' : `${bank.questionCount} questions`}</span><span>{packRetentionLabel(bank)}</span></span>
+        <span className="pack-card-state">{isSelected ? 'Selected for battle' : 'Tap to select'}</span>
+      </button>;
+    })}</div> : <p className="pack-empty">No packs match that search. Try another name or filter.</p>}
+    <p className="pack-picker-foot">{visible.length} pack{visible.length === 1 ? '' : 's'} shown{selected ? <> · <b>{selected.name}</b> selected</> : ' · select a pack to continue'}</p>
+  </div>;
+}
+
 const skillNames = ['SCHOLAR BEAM', 'MIND CANNON', 'EXAM FLASH', 'KNOWLEDGE WAVE', 'FOCUS BLAST'];
 
 function FighterSprite({ player, side, state }: { player?: PublicPlayer; side: 'left' | 'right'; state: string }) {
@@ -1739,7 +1780,7 @@ export function App() {
         <div className="avatar-choice"><span className="avatar-preview" aria-label="Selected fighter"><FighterAvatar seed={avatar} /></span><div><strong>Your fighter</strong><small>Pick your battle character</small></div><button type="button" onClick={() => setAvatarPickerOpen(true)}>Choose fighter</button></div>
         {avatarPickerOpen && <div className="avatar-modal" role="dialog" aria-modal="true" aria-label="Choose your fighter" onClick={() => setAvatarPickerOpen(false)}><section onClick={(event) => event.stopPropagation()}><header><div><div className="eyebrow">CHOOSE YOUR FIGHTER</div><h2>Choose your colors</h2></div><button type="button" aria-label="Close fighter gallery" onClick={() => setAvatarPickerOpen(false)}>×</button></header><FighterThemePicker current={avatar} onApply={(v) => { setAvatar(v); setAvatarPickerOpen(false); playSfx('click'); }} /></section></div>}
         <p className="muted">When your run ends, your result joins the Solo Leaderboard as <b>{name || 'Your name'} #SESSION</b>.</p>
-        <label>Challenge pack<select value={selectedBankId} onChange={(event) => setSelectedBankId(event.target.value)}>{playableBanks.map((bank) => <option key={bank.id} value={bank.id}>{bank.isSample ? 'Included · ' : ''}{bank.name}</option>)}</select>{!banks.length && <small>Sign-in/beta access loads the included packs.</small>}</label>
+        <div className="pack-field"><span className="field-label">Challenge pack</span><PackPicker banks={playableBanks} selectedId={selectedBankId} onSelect={setSelectedBankId} accountId={account?.id} />{!banks.length && <small>Sign-in/beta access loads the included packs.</small>}</div>
         <label>Ladder length<select value={ladderLength} onChange={(event) => setLadderLength(Number(event.target.value))}>{[5, 10, 25, 50].map((value) => <option key={value} value={value}>{value} rivals</option>)}</select></label>
         <label>Starting difficulty<select value={startingDifficulty} onChange={(event) => setStartingDifficulty(event.target.value)}><option value="ROOKIE">Rookie (gentler)</option><option value="STANDARD">Standard escalation</option><option value="EXPERT">Expert (harder)</option></select><small>Rivals get faster and more accurate as your streak climbs.</small></label>
         <label>Feedback mode<select value={feedbackMode} onChange={(event) => setFeedbackMode(event.target.value as 'LEARN' | 'EXAM')}><option value="LEARN">Learn — explanation after each question</option><option value="EXAM">Exam — review only at the end</option></select></label>
@@ -1752,7 +1793,7 @@ export function App() {
         <div className="eyebrow">CHALLENGE QUEUE</div><h2>End someone&rsquo;s streak</h2>
         <p className="muted">Pick the same pack as the streak player. When they finish their current duel, you take the next rival slot.</p>
         <label>Fighter handle<input autoFocus maxLength={24} value={name} onChange={(event) => setName(event.target.value)} placeholder="Streak breaker" /></label>
-        <label>Challenge pack<select value={selectedBankId} onChange={(event) => setSelectedBankId(event.target.value)}>{playableBanks.map((bank) => <option key={bank.id} value={bank.id}>{bank.isSample ? 'Included · ' : ''}{bank.name}</option>)}</select></label>
+        <div className="pack-field"><span className="field-label">Challenge pack</span><PackPicker banks={playableBanks} selectedId={selectedBankId} onSelect={setSelectedBankId} accountId={account?.id} /></div>
         <div className="open-list in-panel">{openChallenges.length ? openChallenges.map((open) => <article key={open.code}><FighterAvatar seed={open.playerAvatar} /><div><b>{open.playerName} <small>#{open.code}</small></b><span>🎒 {open.bankName} · 🔥 {open.streak} · rival {open.rivalIndex}/{open.ladderLength}</span></div><button type="button" onClick={() => { setSelectedBankId(open.bankId); playSfx('click'); if (!queuePosition) send('joinChallengeQueue', { playerId: clientId, name, avatar, bankId: open.bankId }); }}>Queue for this streak ⚔</button></article>) : <p className="muted">No live streaks are open right now — this list refreshes every few seconds.</p>}</div>
         {queuePosition ? <><p className="queue-status">⚔ You are #{queuePosition} in the queue. Keep this tab open…</p><button className="secondary-action" onClick={() => send('leaveChallengeQueue', { playerId: clientId })}>Leave queue</button></>
         : <button className="action" disabled={!connected || !selectedBankId} onClick={() => { localStorage.setItem('zerosum-name', name); send('joinChallengeQueue', { playerId: clientId, name, avatar, bankId: selectedBankId }); }}>Join challenge queue</button>}
@@ -1768,7 +1809,7 @@ export function App() {
       {mode === 'host' && <div className="panel entry-form">
         <button type="button" className="back setup-back" onClick={() => setMode('choose')}>← Back to role selection</button>
         <h2>Create your arena</h2>
-        <label>Challenge pack<select value={selectedBankId} onChange={(event) => setSelectedBankId(event.target.value)}>{playableBanks.map((bank) => <option key={bank.id} value={bank.id}>{bank.isSample ? 'Included · ' : ''}{bank.name} · {bank.gameMode === 'RPS' ? 'PvP mode' : `${bank.questionCount} questions`}</option>)}</select><small>{customBankCount} of {account?.limits.banks ?? 0} custom packs · included samples do not count · {account?.limits.players ?? 0} players maximum</small></label>
+        <div className="pack-field"><span className="field-label">Challenge pack</span><PackPicker banks={playableBanks} selectedId={selectedBankId} onSelect={setSelectedBankId} accountId={account?.id} /><small>{customBankCount} of {account?.limits.banks ?? 0} custom packs · included samples do not count · {account?.limits.players ?? 0} players maximum</small></div>
         <button type="button" className="secondary-action" onClick={() => { setBankManagerView('library'); setMode('banks'); }}>Manage challenge packs</button>
         <div className="setup-option"><label className="toggle"><input type="checkbox" checked={flawlessBonus} onChange={(event) => setFlawlessBonus(event.target.checked)} /><span>Flawless victory heals 1 HP</span></label><FlawlessHelp /></div>
         <div className="setup-option"><label className="toggle"><input type="checkbox" checked={hostPlay} onChange={(event) => setHostPlay(event.target.checked)} /><span>Play as host — join as a fighter; rounds auto-run and answer keys stay hidden from you</span></label></div>
@@ -1788,7 +1829,15 @@ export function App() {
           </div>
           {publicBeta && <p className="limit-note">{canManagePacks ? 'Your paid test account can create and import private packs and preview answer keys.' : 'Sign in with a paid test account to create private packs and preview answer keys; you can still use every included pack.'}</p>}
           <div className="library-heading"><h3>Your challenge packs</h3><small>Select a pack to use it in your next tournament.</small></div>
-          <div className="bank-summary friendly">{banks.map((bank) => { const ownPack = Boolean(bank.isSample) || bank.ownerId === account?.id; const canDelete = !bank.isSample && (isAdmin || ownPack); const retentionLabel = bank.isSample ? 'Included with Zerosum' : bank.retention === 'TEMPORARY' ? `Temporary - expires ${bank.expiresAt ? new Date(bank.expiresAt).toLocaleDateString() : 'in 30 days'}` : 'Permanent pack'; return <div className={selectedBankId === bank.id ? 'pack-row selected' : 'pack-row'} key={bank.id}><button type="button" className="pack-main" onClick={() => { if (ownPack) { setSelectedBankId(bank.id); setMode('host'); } else void openPackEditor(bank.id); }}><span className="pack-icon">{bank.gameMode === 'RPS' ? '\u270A' : bank.isSample ? '\u2605' : '\u2726'}</span><span><b>{bank.name}</b><small>{bank.isSample ? 'Included with Zerosum' : bank.ownerId === account?.id ? (String(bank.description).startsWith('AI Forge') ? 'AI-forged pack' : 'Your custom pack') : `Pack by ${bank.ownerEmail ?? 'another host'}`} - {bank.gameMode === 'RPS' ? 'Player-vs-player mode' : `${bank.questionCount} questions`} - {retentionLabel}</small></span><em>{ownPack ? (selectedBankId === bank.id ? 'Selected' : 'Use pack') : 'Manage'}</em></button>{bank.gameMode !== 'RPS' && (isAdmin || canManagePacks) && <button type="button" className="pack-edit-btn" disabled={loadingBank} onClick={() => void openPackEditor(bank.id)}>View / Edit</button>}{canDelete && <button type="button" className="pack-delete-btn" disabled={deletingBankId === bank.id} onClick={() => void deletePack(bank)}>{deletingBankId === bank.id ? 'Deleting\u2026' : 'Delete'}</button>}</div>; })}</div>
+          <div className="pack-library-grid">{banks.map((bank) => { const ownPack = Boolean(bank.isSample) || bank.ownerId === account?.id; const canDelete = !bank.isSample && (isAdmin || ownPack); const isSelected = selectedBankId === bank.id; return <article className={isSelected ? 'pack-library-card selected' : 'pack-library-card'} key={bank.id}>
+            <button type="button" className="pack-library-main" aria-pressed={isSelected} onClick={() => { if (ownPack) { setSelectedBankId(bank.id); setMode('host'); } else void openPackEditor(bank.id); }}>
+              <span className="pack-card-top"><span className="pack-icon">{bank.gameMode === 'RPS' ? '\u270A' : bank.isSample ? '\u2605' : '\u2726'}</span><span className="pack-badge">{bank.gameMode === 'RPS' ? 'PvP mode' : packSourceLabel(bank, account?.id)}</span><span className="pack-check" aria-hidden="true">{isSelected ? '\u2713' : ''}</span></span>
+              <b className="pack-card-title">{bank.name}</b>
+              <span className="pack-card-meta"><span>{bank.gameMode === 'RPS' ? 'Player vs player' : `${bank.questionCount} questions`}</span><span>{packRetentionLabel(bank)}</span>{!ownPack && bank.ownerEmail ? <span>by {bank.ownerEmail}</span> : null}</span>
+              <span className="pack-card-state">{ownPack ? (isSelected ? 'Selected for next tournament' : 'Use this pack') : 'View to manage'}</span>
+            </button>
+            {(bank.gameMode !== 'RPS' && (isAdmin || canManagePacks)) || canDelete ? <div className="pack-library-actions">{bank.gameMode !== 'RPS' && (isAdmin || canManagePacks) && <button type="button" className="pack-edit-btn" disabled={loadingBank} onClick={() => void openPackEditor(bank.id)}>View / Edit</button>}{canDelete && <button type="button" className="pack-delete-btn" disabled={deletingBankId === bank.id} onClick={() => void deletePack(bank)}>{deletingBankId === bank.id ? 'Deleting\u2026' : 'Delete'}</button>}</div> : null}
+          </article>; })}</div>
           {customBankCount >= (account?.limits.banks ?? 0) && <p className="limit-note">You have used all custom pack slots on this plan. Included samples remain available.</p>}
           {isAdmin && authenticated && <><div className="library-heading"><h3>Admin · pack visibility</h3><small>Hidden packs disappear for students and guests, but stay visible to you.</small></div><div className="bank-summary friendly admin-packs">{[...new Map(banks.map((bank) => [bank.name, bank])).values()].map((bank) => <article className={bank.hidden ? 'admin-pack-card is-hidden' : 'admin-pack-card'} key={bank.name}><span className="pack-icon">{bank.gameMode === 'RPS' ? '✊' : bank.isSample ? '★' : '✦'}</span><span><b>{bank.name}</b><small>{bank.gameMode === 'RPS' ? 'Player-vs-player mode' : bank.questionCount + ' questions'} · {bank.hidden ? 'Hidden from students' : 'Visible to everyone'}</small></span><button type="button" className={bank.hidden ? 'pack-toggle show' : 'pack-toggle'} onClick={async () => { const response = await fetch('/api/admin/packs/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: bank.name, hidden: !bank.hidden }) }); if (response.ok) { await loadBanks(); playSfx('click'); } else setError('Could not update pack visibility.'); }}>{bank.hidden ? '👁 Show' : 'Hide'}</button></article>)}</div></>}
         </>}

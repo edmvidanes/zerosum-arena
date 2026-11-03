@@ -543,3 +543,45 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .history-events div { display: flex; gap: 10px; }
 .history-events time { color: #7f95b5; white-space: nowrap; }
 .history-events span { color: #cfe3f5; }
+
+
+/* ===== Visual pack picker (Solo / Challenge / Host) + pack library ===== */
+.pack-field { display: grid; gap: 8px; min-width: 0; }
+.pack-field .field-label { color: #a2b7c0; font-size: 12px; font-weight: 700; }
+.pack-field > small { color: #718d9a; line-height: 1.45; }
+.pack-picker { display: grid; gap: 12px; min-width: 0; padding: 14px; border: 1px solid #557b8a55; border-radius: 16px; background: linear-gradient(160deg, #0a2330, #06141d); }
+.pack-picker-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.pack-search { flex: 1 1 200px; display: flex !important; align-items: center; gap: 8px; padding: 0 13px; border: 1px solid #476a78; border-radius: 999px; background: #06151f; }
+.pack-search span { color: #6edcec; font-size: 17px; }
+.pack-search input { flex: 1; min-width: 0; border: 0 !important; background: transparent !important; padding: 11px 0 !important; color: #e6f4f8; outline: none; }
+.pack-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.pack-filters button { min-height: 34px; padding: 7px 12px; border: 1px solid #476a78; border-radius: 999px; background: #081c27; color: #8fb2bf; font: 700 11px 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; transition: .15s; }
+.pack-filters button:hover { border-color: #65d9eb; color: #dff2f6; }
+.pack-filters button.selected { border-color: #ff9e3f; background: #382412; color: #ffb25a; }
+.pack-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 10px; }
+.pack-card, .pack-library-main { min-width: 0; width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 9px; padding: 15px; border: 1px solid #476a78; border-radius: 14px; background: #06151f; color: #d9ebef; cursor: pointer; text-align: left; transition: .15s; }
+.pack-card:hover, .pack-library-main:hover { border-color: #65d9eb; transform: translateY(-2px); box-shadow: 0 12px 26px #0006; }
+.pack-card.selected, .pack-library-card.selected .pack-library-main { border-color: #ff9e3f; background: linear-gradient(160deg, #382412, #171310); box-shadow: 0 0 0 1px #ff9e3f66, 0 12px 26px #0006; }
+.pack-card-top { display: flex; align-items: center; gap: 8px; }
+.pack-card-top .pack-icon { flex: 0 0 auto; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: #123443; color: #6edcec; font-size: 19px; }
+.pack-card.selected .pack-icon, .pack-library-card.selected .pack-icon { background: #533417; color: #ffb25a; }
+.pack-badge { flex: 1 1 auto; min-width: 0; color: #8fe3f2; font: 700 10px 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pack-check { flex: 0 0 auto; width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid #476a78; border-radius: 50%; color: #0b1c14; font-size: 13px; font-weight: 900; }
+.pack-card.selected .pack-check, .pack-library-card.selected .pack-check { border-color: #ffb25a; background: #ffb25a; }
+.pack-card-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; color: #eef8fa; font: 700 16px/1.25 'Chakra Petch', sans-serif; overflow-wrap: anywhere; }
+.pack-card-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.pack-card-meta span { padding: 5px 8px; border: 1px solid #476a7855; border-radius: 999px; background: #0a202c; color: #9db8c2; font-size: 11px; line-height: 1.2; }
+.pack-card-state { margin-top: auto; color: #6ed8e9; font: 700 10px 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: .07em; }
+.pack-card.selected .pack-card-state, .pack-library-card.selected .pack-card-state { color: #ffb25a; }
+.pack-empty { margin: 0; padding: 18px; border: 1px dashed #476a78; border-radius: 12px; color: #8fb2bf; text-align: center; }
+.pack-picker-foot { margin: 0; color: #718d9a; font-size: 12px; }
+.pack-picker-foot b { color: #aee9f2; }
+.pack-library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(265px, 1fr)); gap: 12px; min-width: 0; }
+.pack-library-card { min-width: 0; display: flex; flex-direction: column; border: 1px solid #476a78; border-radius: 14px; background: #06151f; overflow: hidden; }
+.pack-library-card.selected { border-color: #ff9e3f; }
+.pack-library-main { flex: 1; border: 0; border-radius: 0; background: transparent; }
+.pack-library-card.selected .pack-library-main { background: linear-gradient(160deg, #382412, #171310); }
+.pack-library-main:hover { transform: none; box-shadow: none; }
+.pack-library-actions { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid #476a7833; background: #050f16; }
+.pack-library-actions .pack-edit-btn, .pack-library-actions .pack-delete-btn { flex: 1 1 0; min-width: 0; min-height: 40px; white-space: nowrap; }
+@media (max-width: 700px) { .pack-picker-grid, .pack-library-grid { grid-template-columns: 1fr; } .pack-picker { padding: 11px; } .pack-card-title { min-height: 0; } }
