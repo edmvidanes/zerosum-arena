@@ -17,11 +17,16 @@ function safeEqualHex(left, right) {
   } catch { return false; }
 }
 
+export function isAdminAccount(account) {
+  if (!account?.email) return false;
+  const admins = String(process.env.ADMIN_EMAILS ?? 'dlsu@zerosum.website').split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
+  return admins.includes(String(account.email).toLowerCase());
+}
 export function publicAccount(account) {
   if (!account) return undefined;
   return {
     id: account.id, email: account.email, displayName: account.display_name,
-    plan: account.plan, limits: planLimits[account.plan],
+    plan: account.plan, limits: planLimits[account.plan], isAdmin: isAdminAccount(account),
   };
 }
 

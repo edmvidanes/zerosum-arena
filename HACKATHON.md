@@ -23,5 +23,12 @@ ZeroSum Arena makes learning fun for quizzes: it turns any quiz into a Dragon Ba
 ## Tech
 React 19 + TypeScript, Node WebSocket server, SQLite, Docker on EC2 (Nginx), original code-drawn SVG fighters (no copyrighted assets), synthesized WebAudio SFX, Meta Model API for AI generation. DB is deliberately lean: solo leaderboard keeps top 5, hosted champions keep last 10, AI packs are pruned to the newest 20 per host.
 
+## Admin testing setup (current phase)
+- Temporary admin: the seeded paid account dlsu@zerosum.website (override with ADMIN_EMAILS, comma-separated).
+- AI Pack Forge is visible and callable ONLY for a signed-in admin right now; students/guests see the ready-made library instead.
+- The admin can hide/show any pack by name (Pack Manager -> Admin - pack visibility); hidden packs disappear for everyone except the admin.
+- Forge accepts a topic, pasted notes, or an uploaded PDF/TXT/MD/CSV/JSON (up to 4 MB / 60 pages). Text extraction runs locally for free; only an evenly-sampled 8,000-character excerpt is sent to Muse Spark to keep token cost low.
+- Signing in lands on the normal homepage (not the pack manager).
+
 ## Setup for judges / self-hosting
 See README.md and DEPLOYMENT.md. To activate AI Pack Forge: get a key at dev.meta.ai (API keys start with LLM_), set MODEL_API_KEY in /etc/zerosum/zerosum.env, redeploy. Optional: META_MODEL (default muse-spark-1.3).

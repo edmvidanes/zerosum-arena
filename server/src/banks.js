@@ -64,7 +64,7 @@ export function parseBankUpload(input) {
 }
 
 export function listBanks(db, accountId) {
-  return db.prepare(`SELECT id,name,description,version,question_count AS questionCount,created_at AS createdAt,
+  return db.prepare(`SELECT id,name,description,version,question_count AS questionCount,created_at AS createdAt, EXISTS(SELECT 1 FROM hidden_packs h WHERE h.name=question_banks.name) AS hidden,
     updated_at AS updatedAt,is_sample AS isSample,game_mode AS gameMode FROM question_banks WHERE owner_id=? ORDER BY is_sample DESC,updated_at DESC`).all(accountId);
 }
 

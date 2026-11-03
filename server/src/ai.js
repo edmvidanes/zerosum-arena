@@ -1,4 +1,5 @@
 // Meta Model API integration (Muse Spark) - dev.meta.ai/docs
+import { excerptForModel } from './document.js';
 const API_URL = process.env.META_MODEL_API_URL || 'https://api.meta.ai/v1/chat/completions';
 export const AI_MODEL = process.env.META_MODEL || 'muse-spark-1.3';
 export function aiEnabled() { return Boolean(process.env.MODEL_API_KEY || process.env.META_MODEL_API_KEY); }
@@ -21,7 +22,7 @@ export async function generateQuizPack(input) {
   const wanted = Math.min(20, Math.max(5, Number(input.count) || 12));
   const system = 'You are an expert teacher and quiz designer. Return ONLY valid JSON, no markdown fences. Schema: {"name":"short pack title","questions":[{"prompt":"question","options":["A","B","C","D"],"correctIndex":0,"explanation":"one friendly sentence teaching why","difficulty":"basic"}]}. Rules: exactly the requested number of questions; 4 options each; exactly one correct answer; vary correctIndex; age-appropriate, factual, no trick questions; every question MUST have a teaching explanation; mix recall and simple scenario questions.';
   let user = 'Topic: ' + topic + '\nAudience: ' + audience + '\nQuestions: ' + wanted;
-  user += input.sourceText ? '\nBase the questions ONLY on this lesson material:\n' + String(input.sourceText).slice(0, 8000) : '\nUse widely accepted curriculum knowledge for this topic.';
+  user += input.sourceText ? '\nBase the questions ONLY on this lesson material:\n' + excerptForModel(input.sourceText, 8000) : '\nUse widely accepted curriculum knowledge for this topic.';
   const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 90000);
   try {
     const res = await fetch(API_URL, { method: 'POST', signal: controller.signal, headers: { Authorization: 'Bearer ' + apiKey(), 'Content-Type': 'application/json' }, body: JSON.stringify({ model: AI_MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], temperature: 0.6 }) });

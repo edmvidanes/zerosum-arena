@@ -7,9 +7,10 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { openDatabase } from './database.js';
 import { ZerosumGame } from './game.js';
 import { log } from './logger.js';
-import { accountFromCookie, clearSessionCookie, ensureSeedAccounts, limitsFor, login, logout, publicAccount, sessionCookie } from './auth.js';
+import { accountFromCookie, clearSessionCookie, ensureSeedAccounts, isAdminAccount, limitsFor, login, logout, publicAccount, sessionCookie } from './auth.js';
 import { createBank, ensureSampleBanks, getBank, listBanks, normalizeQuestions, parseBankUpload } from './banks.js';
 import { aiEnabled, AI_MODEL, generateQuizPack } from './ai.js';
+import { excerptForModel, extractDocumentText } from './document.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../..');
@@ -37,6 +38,7 @@ const requestIdentity = (cookieHeader = '') => {
     authenticated: Boolean(authenticatedAccount),
     canViewAnswers: Boolean(authenticatedAccount?.plan === 'PAID'),
     canManagePacks: Boolean(authenticatedAccount && (!publicBetaMode || authenticatedAccount.plan === 'PAID')),
+    isAdmin: Boolean(authenticatedAccount && isAdminAccount(authenticatedAccount)),
   };
 };
 const browserAccount = (account, authenticated = false) => {
@@ -162,7 +164,7 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'GET' && url.pathname === '/api/me') return sendJson(response, 200, {
     account: browserAccount(account, identity.authenticated) ?? null,
     publicBeta: publicBetaMode, authenticated: identity.authenticated,
-    canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks, aiEnabled: aiEnabled(), aiModel: AI_MODEL,
+    canViewAnswers: identity.canViewAnswers, canManagePacks: identity.canManagePacks, isAdmin: identity.isAdmin, aiEnabled: aiEnabled() && identity.isAdmin, aiModel: AI_MODEL,
   });
   if (request.method === 'GET' && url.pathname === '/api/solo/leaderboard') {
     const entries = db.prepare('SELECT code, name, avatar, bank_name AS bankName, streak, ladder_length AS ladderLength, result, ended_at AS endedAt FROM solo_leaderboard WHERE streak >= 2 AND result != \'FORFEIT\' ORDER BY streak DESC, ended_at DESC LIMIT 5').all();
@@ -203,7 +205,7 @@ const server = http.createServer(async (request, response) => {
     if (!account) return sendJson(response, 401, { error: 'Sign in to manage challenge packs.' });
     const banks = listBanks(db, account.id);
     return sendJson(response, 200, {
-      banks: publicBetaMode && !identity.authenticated ? banks.filter((bank) => Boolean(bank.isSample) || String(bank.description).startsWith('AI Forge')) : banks,
+      banks: (publicBetaMode && !identity.authenticated ? banks.filter((bank) => Boolean(bank.isSample) || String(bank.description).startsWith('AI Forge')) : banks).filter((bank) => identity.isAdmin || !bank.hidden),
       limits: limitsFor(account.plan),
     });
   }
@@ -235,6 +237,17 @@ const server = http.createServer(async (request, response) => {
     logout(db, request.headers.cookie);
     return sendJson(response, 200, { ok: true }, { 'Set-Cookie': clearSessionCookie(secure) });
   }
+  if (request.method === 'POST' && url.pathname === '/api/admin/packs/visibility') {
+    if (!identity.authenticated || !identity.isAdmin) return sendJson(response, 403, { error: 'Admin access required.' });
+    try {
+      const body = await readJson(request, 4 * 1024);
+      const name = String(body.name ?? '').trim(); const hidden = Boolean(body.hidden);
+      if (!name) return sendJson(response, 400, { error: 'Pack name is required.' });
+      if (hidden) db.prepare('INSERT OR REPLACE INTO hidden_packs (name, hidden_at) VALUES (?,?)').run(name, Date.now());
+      else db.prepare('DELETE FROM hidden_packs WHERE name=?').run(name);
+      return sendJson(response, 200, { ok: true, name, hidden });
+    } catch (error) { return sendJson(response, 400, { error: error.message }); }
+  }
   if (request.method === 'POST' && url.pathname === '/api/banks/import') {
     if (!account) return sendJson(response, 401, { error: 'Sign in to import challenge packs.' });
     if (!identity.canManagePacks) return sendJson(response, 403, { error: 'Creating and importing challenge packs requires a signed-in paid host during public beta.' });
@@ -245,10 +258,17 @@ const server = http.createServer(async (request, response) => {
     } catch (error) { return sendJson(response, 400, { error: error.message }); }
   }
   if (request.method === 'POST' && url.pathname === '/api/ai/generate-pack') {
-    if (!account) return sendJson(response, 401, { error: 'Sign in to use AI Pack Forge.' });
+    if (!identity.authenticated) return sendJson(response, 401, { error: 'Sign in with the admin account to use AI Pack Forge.' });
+    if (!identity.isAdmin) return sendJson(response, 403, { error: 'AI Pack Forge is in admin testing right now. It will open to more teachers after validation.' });
     if (!allowAttempt(tournamentCreationAttempts, 'ai:' + clientAddress(request), 6, 20 * 60 * 1000)) return sendJson(response, 429, { error: 'Too many AI requests from this network. Try again in a few minutes.' });
     try {
-      const body = await readJson(request, 32 * 1024);
+      const body = await readJson(request, 6 * 1024 * 1024);
+      let documentInfo;
+      if (body.sourceFile?.contentBase64) {
+        const extracted = await extractDocumentText(body.sourceFile);
+        body.sourceText = extracted.text; documentInfo = { pages: extracted.pages, characters: extracted.characters, fileName: String(body.sourceFile.name ?? 'document') };
+        if (!String(body.topic ?? '').trim()) body.topic = 'the uploaded document: ' + documentInfo.fileName.replace(/\.[^.]+$/, '');
+      }
       const generated = await generateQuizPack(body);
       const questions = normalizeQuestions(generated.questions, 25);
       const cleanName = String(generated.name || body.topic || 'AI Quiz Pack').trim().slice(0, 80) || 'AI Quiz Pack';
@@ -256,7 +276,7 @@ const server = http.createServer(async (request, response) => {
       const now = Date.now();
       db.prepare('INSERT INTO question_banks (id,owner_id,name,description,version,question_count,content,created_at,updated_at,game_mode) VALUES (?,?,?,?,1,?,?,?,?,?)').run(bank.id, account.id, bank.name, bank.description, questions.length, JSON.stringify(questions), now, now, 'QUIZ');
       db.prepare("DELETE FROM question_banks WHERE owner_id=? AND description LIKE 'AI Forge%' AND id NOT IN (SELECT id FROM question_banks WHERE owner_id=? AND description LIKE 'AI Forge%' ORDER BY created_at DESC LIMIT 20)").run(account.id, account.id);
-      return sendJson(response, 201, { bank: { id: bank.id, name: bank.name, description: bank.description, version: 1, questionCount: questions.length, createdAt: now, updatedAt: now, gameMode: 'QUIZ', isSample: 0 }, model: AI_MODEL });
+      return sendJson(response, 201, { bank: { id: bank.id, name: bank.name, description: bank.description, version: 1, questionCount: questions.length, createdAt: now, updatedAt: now, gameMode: 'QUIZ', isSample: 0 }, model: AI_MODEL, document: documentInfo });
     } catch (error) { return sendJson(response, error.code === 'AI_NOT_CONFIGURED' ? 503 : 400, { error: error.message, code: error.code ?? 'AI_ERROR' }); }
   }
   if (request.method === 'POST' && ['/api/action', '/api/sync'].includes(url.pathname)) {

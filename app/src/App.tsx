@@ -476,7 +476,7 @@ function AccountBadge({ account, publicBeta = false, authenticated = false, onSi
   if (!account) return <button type="button" className="header-sign-in" onClick={onSignIn}>Sign in</button>;
   return <div className={`account-badge ${compact ? 'compact' : ''}`}>
     <span className="account-avatar" aria-hidden="true">{account.displayName.slice(0, 1).toUpperCase()}</span>
-    <span className="account-identity"><b>{account.displayName}</b><small>{account.plan} HOST</small></span>
+    <span className="account-identity"><b>{account.displayName}</b><small>{account.isAdmin ? 'ADMIN · ' : ''}{account.plan} HOST</small></span>
     {onHost && <button type="button" onClick={onHost}>Host</button>}
     {onSignOut && <button type="button" className="account-sign-out" onClick={onSignOut}>Sign out</button>}
   </div>;
@@ -1051,6 +1051,9 @@ export function App() {
   const [aiSource, setAiSource] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [aiFile, setAiFile] = useState<{ name: string; contentBase64: string }>();
+  const [aiDocNote, setAiDocNote] = useState('');
   const [aiModel, setAiModel] = useState('muse-spark-1.3');
   const [copyStatus, setCopyStatus] = useState('Copy link');
 
@@ -1231,7 +1234,7 @@ export function App() {
     setBanks(result.banks);
     setSelectedBankId((current) => result.banks.some((bank) => bank.id === current)
       ? current
-      : result.banks.find((bank) => bank.gameMode === 'RPS')?.id ?? result.banks[0]?.id ?? '');
+      : result.banks.find((bank) => bank.gameMode !== 'RPS' && bank.isSample)?.id ?? result.banks.find((bank) => bank.gameMode !== 'RPS')?.id ?? result.banks[0]?.id ?? '');
   }, []);
 
   const connect = useCallback(async () => {
@@ -1254,7 +1257,7 @@ export function App() {
         const savedHostCode = sessionStorage.getItem('zerosum-host-code');
         const urlCode = new URLSearchParams(location.search).get('code')?.toUpperCase();
         if (savedHostToken && urlCode && (!savedHostCode || savedHostCode === urlCode)) send('hostResume', { code: urlCode, hostToken: savedHostToken });
-        else if (localStorage.getItem('zerosum-code') && localStorage.getItem('zerosum-name')) {
+        else if (urlCode && localStorage.getItem('zerosum-code') === urlCode && localStorage.getItem('zerosum-name')) {
           send('join', {
             code: localStorage.getItem('zerosum-code'),
             name: localStorage.getItem('zerosum-name'),
@@ -1280,12 +1283,12 @@ export function App() {
 
   useEffect(() => {
     connect();
-    void fetch('/api/me', { cache: 'no-store' }).then((response) => response.json()).then((result: { account: Account | null; publicBeta?: boolean; authenticated?: boolean; canViewAnswers?: boolean; canManagePacks?: boolean; aiEnabled?: boolean; aiModel?: string }) => {
+    void fetch('/api/me', { cache: 'no-store' }).then((response) => response.json()).then((result: { account: Account | null; publicBeta?: boolean; authenticated?: boolean; canViewAnswers?: boolean; canManagePacks?: boolean; aiEnabled?: boolean; aiModel?: string; isAdmin?: boolean }) => {
       setPublicBeta(Boolean(result.publicBeta));
       setAuthenticated(Boolean(result.authenticated));
       setCanViewAnswers(Boolean(result.canViewAnswers));
       setCanManagePacks(Boolean(result.canManagePacks));
-      setAiEnabled(Boolean(result.aiEnabled)); if (result.aiModel) setAiModel(result.aiModel);
+      setAiEnabled(Boolean(result.aiEnabled)); setIsAdmin(Boolean(result.isAdmin || result.account?.isAdmin)); if (result.aiModel) setAiModel(result.aiModel);
       if (result.account) {
         setAccount(result.account);
         void loadBanks();
@@ -1391,10 +1394,12 @@ export function App() {
     setAuthenticated(Boolean(result.authenticated));
     setCanViewAnswers(Boolean(result.canViewAnswers));
     setCanManagePacks(Boolean(result.canManagePacks));
+    setIsAdmin(Boolean(result.account?.isAdmin));
     setLoginPassword('');
     await loadBanks();
+    try { const me = await (await fetch('/api/me', { cache: 'no-store' })).json() as { aiEnabled?: boolean; aiModel?: string; isAdmin?: boolean }; setAiEnabled(Boolean(me.aiEnabled)); setIsAdmin(Boolean(me.isAdmin)); if (me.aiModel) setAiModel(me.aiModel); } catch { /* AI flags refresh is best-effort */ }
     startHttpFallback();
-    setMode('host');
+    setMode('choose');
   }
 
   async function signOut() {
@@ -1422,20 +1427,20 @@ export function App() {
     setAccount(result.account ?? undefined);
     setAuthenticated(Boolean(result.authenticated));
     setCanViewAnswers(Boolean(result.canViewAnswers));
-    setCanManagePacks(Boolean(result.canManagePacks));
+    setCanManagePacks(Boolean(result.canManagePacks)); setIsAdmin(Boolean((result as { isAdmin?: boolean }).isAdmin || result.account?.isAdmin)); setAiEnabled(false);
     await loadBanks();
     setMode('choose');
   }
 
   async function generateAiPack(event: FormEvent) {
     event.preventDefault();
-    if (!aiTopic.trim()) return setError('Tell the AI what topic to teach.');
+    if (!aiTopic.trim() && !aiFile) return setError('Tell the AI what topic to teach, or upload a lesson document.');
     setAiBusy(true); setError('');
     try {
-      const response = await fetch('/api/ai/generate-pack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: aiTopic, audience: aiAudience, count: aiCount, sourceText: aiSource }) });
-      const result = await response.json() as { bank?: BankSummary; error?: string; model?: string };
+      const response = await fetch('/api/ai/generate-pack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic: aiTopic, audience: aiAudience, count: aiCount, sourceText: aiSource, sourceFile: aiFile }) });
+      const result = await response.json() as { bank?: BankSummary; error?: string; model?: string; document?: { pages: number; characters: number; fileName: string } };
       if (!response.ok || !result.bank) { setError(result.error ?? 'AI Pack Forge could not create that pack.'); return; }
-      await loadBanks(); setSelectedBankId(result.bank.id); setAiTopic(''); setAiSource(''); setMode('host'); playSfx('charge');
+      await loadBanks(); setSelectedBankId(result.bank.id); setAiTopic(''); setAiSource(''); setAiFile(undefined); setAiDocNote(result.document ? 'Read ' + result.document.pages + ' page(s), ' + result.document.characters.toLocaleString() + ' characters from ' + result.document.fileName + '.' : ''); setMode('host'); playSfx('charge');
     } catch { setError('Could not reach the AI Pack Forge. Check your connection and try again.'); }
     finally { setAiBusy(false); }
   }
@@ -1623,7 +1628,8 @@ export function App() {
         <button className="choice" onClick={() => setMode('challenge')}><span>⚔</span><b>Challenge a streak</b><small>Queue up and take the next rival slot</small></button>
       </div>}
       {mode === 'choose' && <section className="streak-panel"><FighterAvatar seed={avatar} /><span>👤 {name || 'Guest fighter'}</span><strong>Finish a Solo Arcade run and your name lands on the leaderboard below — tagged with your session code.</strong></section>}
-      {mode === 'choose' && <section className="board-card ai-home"><div className="section-title"><div><div className="eyebrow">TEACHERS & CREATORS · NEW</div><h2>AI Pack Forge - powered by Meta Muse Spark</h2></div><span>{aiEnabled ? 'AI online' : 'Ready-made packs open'}</span></div><p className="muted">Type any topic - or paste your lesson notes - and Meta AI builds a checked, playable quiz pack with explanations in under a minute. No account needed to browse the ready-made library: Math, English, Science, Philippine History, Money Smart, Job Ready, Cybersecurity, and AWS.</p><button type="button" className="action" onClick={() => { setBankManagerView('ai'); setMode('banks'); playSfx('click'); }}>Open AI Pack Forge ✦</button></section>}
+      {mode === 'choose' && isAdmin && authenticated && <section className="board-card ai-home"><div className="section-title"><div><div className="eyebrow">ADMIN TESTING · META MUSE SPARK</div><h2>AI Pack Forge</h2></div><span>{aiEnabled ? 'AI online' : 'AI key needed'}</span></div><p className="muted">Signed in as admin: type a topic, paste lesson notes, or upload a PDF and Meta AI will forge a checked, playable quiz pack.</p><button type="button" className="action" onClick={() => { setBankManagerView('ai'); setMode('banks'); playSfx('click'); }}>Open AI Pack Forge ✦</button></section>}
+      {mode === 'choose' && !(isAdmin && authenticated) && <section className="board-card ai-home"><div className="section-title"><div><div className="eyebrow">READY-MADE LEARNING LIBRARY</div><h2>Start learning in one click</h2></div><span>11 packs · 300+ questions</span></div><p className="muted">Math, English, Science, Philippine History, Money Smart, Job Ready, Cybersecurity, and AWS - every pack includes teaching explanations. Pick one in Solo Arcade or host a tournament for your class.</p><button type="button" className="action" onClick={() => { setMode('solo'); playSfx('click'); }}>Play Solo Arcade</button></section>}
       {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">LIVE · OPEN TO CHALLENGERS</div><h2>Streaks you can challenge right now</h2></div><span>{openChallenges.length} live</span></div>{openChallenges.length ? <div className="open-list">{openChallenges.map((open) => <article key={open.code}><FighterAvatar seed={open.playerAvatar} /><div><b>{open.playerName} <small>#{open.code}</small></b><span>🎒 {open.bankName} · 🔥 streak {open.streak} · rival {open.rivalIndex}/{open.ladderLength}</span></div><button type="button" onClick={() => { setSelectedBankId(open.bankId); setMode('challenge'); playSfx('click'); }}>Challenge ⚔</button></article>)}</div> : <p className="muted">No streak is open to challengers at the moment. Start a Solo Arcade run with “Allow challenges” to appear here.</p>}</section>}
       {mode === 'choose' && <section className="board-card"><div className="section-title"><div><div className="eyebrow">SOLO LEADERBOARD</div><h2>Top streaks</h2></div><span>Updated live</span></div>{soloLeaderboard.length ? <ol className="leaderboard-list">{soloLeaderboard.slice(0, 5).map((entry, index) => <li key={entry.code}><b>#{index + 1}</b><FighterAvatar seed={entry.avatar} /><span className="board-name">{entry.name} <small>#{entry.code}</small></span><span className="board-bank">{entry.bankName}</span><strong>🔥 {entry.streak}</strong><em>{entry.result === 'LADDER_CLEARED' ? '👑 Cleared' : entry.result === 'CHALLENGED' ? '⚔ Challenged' : entry.result === 'FORFEIT' ? '🏳 Forfeited' : '💥 Ended'}</em></li>)}</ol> : <p className="muted">No finished streaks yet — be the first name on this board.</p>}</section>}
       {mode === 'choose' && <section className="board-card champions-card"><div className="section-title"><div><div className="eyebrow">HOSTED TOURNAMENTS</div><h2>Recent champions</h2></div><span>Last 10 battles</span></div>{recentWinners.length ? <> <ol className="leaderboard-list winners-list">{recentWinners.slice(0, championsOpen ? 10 : 3).map((winner, index) => <li key={winner.code}><button type="button" className="winner-row" onClick={() => void openHistory(winner.code)}><b>#{index + 1}</b><FighterAvatar seed={winner.championAvatar} /><span className="board-name">{winner.championName} <small>#{winner.code}</small></span><span className="board-bank">{winner.bankName}</span><strong>{winner.playerCount} players · {winner.rounds} rounds</strong><em>{new Date(winner.endedAt).toLocaleDateString()}</em></button></li>)}</ol>{recentWinners.length > 3 && <button type="button" className="champions-toggle" aria-expanded={championsOpen} onClick={() => { setChampionsOpen((value) => !value); playSfx('click'); }}><span>{championsOpen ? 'Show top 3' : `View all ${recentWinners.length} battles`}</span><span className="champions-chevron" aria-hidden="true">{championsOpen ? '▴' : '▾'}</span></button>}</> : <p className="muted">No hosted tournament has crowned a champion yet — host one and finish it to appear here. Click a champion to see the final standings.</p>}</section>}
@@ -1703,12 +1709,13 @@ export function App() {
           <div className="creation-choices">
             <button type="button" className="creation-card primary" disabled={!canManagePacks || customBankCount >= (account?.limits.banks ?? 0)} onClick={() => setBankManagerView('create')}><span>＋</span><b>Create in Zerosum</b><small>{canManagePacks ? 'A guided editor for questions and answers' : 'Paid beta account required'}</small></button>
             <button type="button" className="creation-card" disabled={!canManagePacks || customBankCount >= (account?.limits.banks ?? 0)} onClick={() => setBankManagerView('import')}><span>⇧</span><b>Import a file</b><small>{canManagePacks ? 'Upload a JSON or CSV question pack' : 'Paid beta account required'}</small></button>
-            <button type="button" className="creation-card ai-card" onClick={() => setBankManagerView('ai')}><span>✦</span><b>AI Pack Forge</b><small>{aiEnabled ? 'Meta ' + aiModel + ' turns a topic or lesson notes into a playable pack' : 'Powered by Meta Muse Spark - server key needed to activate'}</small></button>
+            {isAdmin && authenticated && <button type="button" className="creation-card ai-card" onClick={() => setBankManagerView('ai')}><span>✦</span><b>AI Pack Forge</b><small>{aiEnabled ? 'Meta ' + aiModel + ' turns a topic, notes, or PDF into a playable pack' : 'Powered by Meta Muse Spark - server key needed to activate'}</small></button>}
           </div>
           {publicBeta && <p className="limit-note">{canManagePacks ? 'Your paid test account can create and import private packs and preview answer keys.' : 'Sign in with a paid test account to create private packs and preview answer keys; you can still use every included pack.'}</p>}
           <div className="library-heading"><h3>Your challenge packs</h3><small>Select a pack to use it in your next tournament.</small></div>
           <div className="bank-summary friendly">{banks.map((bank) => <button type="button" className={selectedBankId === bank.id ? 'selected' : ''} key={bank.id} onClick={() => { setSelectedBankId(bank.id); setMode('host'); }}><span className="pack-icon">{bank.gameMode === 'RPS' ? '✊' : bank.isSample ? '★' : '✦'}</span><span><b>{bank.name}</b><small>{bank.isSample ? 'Included with Zerosum' : 'Your custom pack'} · {bank.gameMode === 'RPS' ? 'Player-vs-player mode' : `${bank.questionCount} questions`}</small></span><em>{selectedBankId === bank.id ? 'Selected' : 'Use pack'}</em></button>)}</div>
           {customBankCount >= (account?.limits.banks ?? 0) && <p className="limit-note">You have used all custom pack slots on this plan. Included samples remain available.</p>}
+          {isAdmin && authenticated && <><div className="library-heading"><h3>Admin · pack visibility</h3><small>Hidden packs disappear for students and guests, but stay visible to you.</small></div><div className="bank-summary friendly">{[...new Map(banks.map((bank) => [bank.name, bank])).values()].map((bank) => <div className="admin-pack-row" key={bank.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid #ffffff14' }}><span><b>{bank.name}</b> <small>{bank.hidden ? '· HIDDEN' : '· visible'} · {bank.questionCount} questions</small></span><button type="button" className="secondary-action" onClick={async () => { const response = await fetch('/api/admin/packs/visibility', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: bank.name, hidden: !bank.hidden }) }); if (response.ok) await loadBanks(); else setError('Could not update pack visibility.'); }}>{bank.hidden ? 'Show pack' : 'Hide pack'}</button></div>)}</div></>}
         </>}
 
         {canManagePacks && bankManagerView === 'create' && <form className="pack-builder" onSubmit={saveManualBank}>
@@ -1730,13 +1737,15 @@ export function App() {
           <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save challenge pack'}</button></div>
         </form>}
 
-        {bankManagerView === 'ai' && <form className="pack-import ai-forge" onSubmit={generateAiPack}>
+        {bankManagerView === 'ai' && isAdmin && authenticated && <form className="pack-import ai-forge" onSubmit={generateAiPack}>
           <div className="manager-heading"><div><div className="eyebrow">AI PACK FORGE · POWERED BY META MUSE SPARK</div><h2>Turn a lesson into a battle</h2><p>Teachers: type a topic or paste lesson notes. Meta AI writes curriculum-friendly questions with teaching explanations, checked by Zerosum before they can be played.</p></div><span>{aiEnabled ? 'AI online' : 'AI key needed'}</span></div>
           {!aiEnabled && <p className="limit-note">The forge is built and ready - it activates the moment a Meta Model API key (MODEL_API_KEY from dev.meta.ai) is added on the server. Ready-made packs below still work right now.</p>}
-          <label>Topic<input autoFocus maxLength={120} value={aiTopic} onChange={(event) => setAiTopic(event.target.value)} placeholder="Example: Photosynthesis for Grade 6" /></label>
+          <label>Topic <small>Optional if you upload a document</small><input autoFocus maxLength={120} value={aiTopic} onChange={(event) => setAiTopic(event.target.value)} placeholder="Example: Photosynthesis for Grade 6" /></label>
           <label>Who is this for?<select value={aiAudience} onChange={(event) => setAiAudience(event.target.value)}><option>Classroom learners</option><option>Exam reviewers</option><option>Self-study learners</option><option>Everyone / trivia night</option><option>Workplace training</option></select></label>
           <label>Questions<select value={aiCount} onChange={(event) => setAiCount(Number(event.target.value))}><option value={8}>8 questions</option><option value={12}>12 questions</option><option value={16}>16 questions</option><option value={20}>20 questions</option></select></label>
           <label>Lesson notes <small>Optional - paste your own material and questions will be based only on it</small><textarea maxLength={8000} rows={6} value={aiSource} onChange={(event) => setAiSource(event.target.value)} placeholder="Paste lesson notes, a reviewer, or a chapter summary..." /></label>
+          <label className="file-drop"><span>Upload lesson document (PDF, TXT, MD, CSV, JSON · up to 4 MB)</span><small>{aiFile ? aiFile.name : 'Text is extracted on the server for free; only a short excerpt is sent to Meta AI to save tokens'}</small><input type="file" accept=".pdf,.txt,.md,.markdown,.csv,.json" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return setAiFile(undefined); if (file.size > 4 * 1024 * 1024) return setError('Upload a document up to 4 MB.'); const reader = new FileReader(); reader.onload = () => setAiFile({ name: file.name, contentBase64: String(reader.result).split(',')[1] ?? '' }); reader.readAsDataURL(file); }} /></label>
+          {aiDocNote && <p className="limit-note">{aiDocNote}</p>}
           <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={aiBusy || !aiEnabled}>{aiBusy ? 'Forging with Meta AI...' : 'Forge my pack ✦'}</button></div>
         </form>}
 

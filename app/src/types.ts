@@ -127,6 +127,7 @@ export interface Account {
   email: string;
   displayName: string;
   plan: 'FREE' | 'PAID';
+  isAdmin?: boolean;
   limits: PlanLimits;
 }
 
@@ -139,6 +140,7 @@ export interface BankSummary {
   createdAt: number;
   updatedAt: number;
   isSample: number;
+  hidden?: number;
   gameMode: 'QUIZ' | 'RPS';
 }
 
