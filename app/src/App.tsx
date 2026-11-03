@@ -403,6 +403,18 @@ function DamageOverlay({ amount, player }: { amount: number; player?: PublicPlay
 }
 
 
+
+function AutoGrowTextarea({ value, onChange, maxLength, placeholder, ariaLabel, className }: { value: string; onChange: (value: string) => void; maxLength?: number; placeholder?: string; ariaLabel?: string; className?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [value]);
+  return <textarea ref={ref} className={className} rows={1} maxLength={maxLength} value={value} aria-label={ariaLabel} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />;
+}
+
 function packSourceLabel(bank: BankSummary, accountId?: string) {
   if (bank.isSample) return 'Included';
   if (bank.ownerId && accountId && bank.ownerId === accountId) return String(bank.description ?? '').startsWith('AI Forge') ? 'AI-forged' : 'Your pack';
@@ -1855,14 +1867,14 @@ export function App() {
           {bankManagerView !== 'edit' && <div className="duplicate-setting"><label className="toggle"><input type="checkbox" checked={allowDuplicateQuestions} onChange={(event) => setAllowDuplicateQuestions(event.target.checked)} /><span><b>Allow repeated questions</b><small>Use this when you intentionally want the same question more than once. The Duplicate button turns this on automatically.</small></span></label></div>}
           <div className="question-editor-list">{draftQuestions.map((question, questionIndex) => <article className="question-editor" key={question.id}>
             <header><span>QUESTION {questionIndex + 1}</span><div className="question-actions"><button type="button" disabled={draftQuestions.length >= (account?.limits.questionsPerBank ?? 0)} onClick={() => duplicateDraftQuestion(question.id)}>Duplicate</button><button type="button" disabled={draftQuestions.length <= 3} onClick={() => setDraftQuestions((questions) => questions.filter((candidate) => candidate.id !== question.id))}>Remove</button></div></header>
-            <label>Question<textarea maxLength={500} value={question.prompt} onChange={(event) => updateDraftQuestion(question.id, { prompt: event.target.value })} placeholder="Type your question here" /></label>
-            <div className="answer-editor">{question.options.map((option, optionIndex) => <div className={question.correctIndex === optionIndex ? 'answer-option correct' : 'answer-option'} key={`${question.id}-${optionIndex}`}>
+            <label>Question<AutoGrowTextarea className="auto-grow question-prompt" maxLength={500} value={question.prompt} onChange={(value) => updateDraftQuestion(question.id, { prompt: value })} placeholder="Type your question here" /></label>
+            <div className="answer-editor">{question.options.map((option, optionIndex) => <div className={`${question.correctIndex === optionIndex ? 'answer-option correct' : 'answer-option'}${option.length > 90 ? ' wide' : ''}`} key={`${question.id}-${optionIndex}`}>
               <label className="correct-choice"><input type="radio" name={`correct-${question.id}`} checked={question.correctIndex === optionIndex} onChange={() => updateDraftQuestion(question.id, { correctIndex: optionIndex })} /><span>{question.correctIndex === optionIndex ? 'Correct' : String.fromCharCode(65 + optionIndex)}</span></label>
-              <input aria-label={`Question ${questionIndex + 1}, answer ${optionIndex + 1}`} maxLength={200} value={option} onChange={(event) => updateDraftOption(question.id, optionIndex, event.target.value)} placeholder={`Answer ${optionIndex + 1}`} />
+              <AutoGrowTextarea className="auto-grow answer-text" ariaLabel={`Question ${questionIndex + 1}, answer ${optionIndex + 1}`} maxLength={200} value={option} onChange={(value) => updateDraftOption(question.id, optionIndex, value)} placeholder={`Answer ${optionIndex + 1}`} />
               <button type="button" aria-label={`Remove answer ${optionIndex + 1}`} disabled={question.options.length <= 2} onClick={() => removeDraftOption(question.id, optionIndex)}>×</button>
             </div>)}</div>
             <button type="button" className="add-answer" disabled={question.options.length >= 6} onClick={() => updateDraftQuestion(question.id, { options: [...question.options, ''] })}>＋ Add another answer</button>
-            <div className="question-notes"><label>Answer explanation <small>Optional</small><textarea maxLength={1000} value={question.explanation} onChange={(event) => updateDraftQuestion(question.id, { explanation: event.target.value })} placeholder="Explain why the answer is correct" /></label><label>Difficulty<select value={question.difficulty} onChange={(event) => updateDraftQuestion(question.id, { difficulty: event.target.value as DraftQuestion['difficulty'] })}><option value="basic">Quick answer</option><option value="scenario">Scenario</option></select></label></div>
+            <div className="question-notes"><label>Answer explanation <small>Optional</small><AutoGrowTextarea className="auto-grow" maxLength={1000} value={question.explanation} onChange={(value) => updateDraftQuestion(question.id, { explanation: value })} placeholder="Explain why the answer is correct" /></label><label>Difficulty<select value={question.difficulty} onChange={(event) => updateDraftQuestion(question.id, { difficulty: event.target.value as DraftQuestion['difficulty'] })}><option value="basic">Quick answer</option><option value="scenario">Scenario</option></select></label></div>
           </article>)}</div>
           <button type="button" className="add-question" disabled={draftQuestions.length >= (account?.limits.questionsPerBank ?? 0)} onClick={() => setDraftQuestions((questions) => [...questions, createDraftQuestion()])}>＋ Add question</button>
           {bankManagerView === 'edit' ? <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Back to packs</button><button type="button" className="secondary-action" disabled={savingBank} onClick={(event) => void saveEditedBank(event)}>{savingBank ? 'Saving…' : 'Save changes only'}</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save & use this pack ⚔'}</button></div> : <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={savingBank}>{savingBank ? 'Saving…' : 'Save challenge pack'}</button></div>}

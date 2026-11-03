@@ -585,3 +585,15 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .pack-library-actions { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid #476a7833; background: #050f16; }
 .pack-library-actions .pack-edit-btn, .pack-library-actions .pack-delete-btn { flex: 1 1 0; min-width: 0; min-height: 40px; white-space: nowrap; }
 @media (max-width: 700px) { .pack-picker-grid, .pack-library-grid { grid-template-columns: 1fr; } .pack-picker { padding: 11px; } .pack-card-title { min-height: 0; } }
+
+
+/* ===== Auto-growing review fields (pack editor) ===== */
+textarea.auto-grow { resize: none; overflow: hidden; line-height: 1.45; field-sizing: content; max-height: 200px; }
+textarea.auto-grow.question-prompt { font-size: 15px; }
+.answer-option { align-items: stretch; }
+.answer-option textarea.answer-text { width: 100%; min-width: 0; align-self: center; border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 12px 10px; color: #eef8fa; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.answer-option textarea.answer-text:focus { outline: none; }
+.answer-option:focus-within { border-color: #5ed8eb; }
+.answer-option.wide { grid-column: 1 / -1; }
+.answer-option .correct-choice { align-self: stretch; }
+@media (max-width: 700px) { .answer-option.wide { grid-column: auto; } }
