@@ -57,7 +57,6 @@ export function openDatabase(dataDir) {
       FOREIGN KEY (owner_id) REFERENCES accounts(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_banks_owner ON question_banks(owner_id, updated_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_banks_expiry ON question_banks(expires_at);
   `);
   db.exec(`CREATE TABLE IF NOT EXISTS hidden_packs (name TEXT PRIMARY KEY, hidden_at INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS solo_leaderboard (
@@ -122,6 +121,7 @@ export function openDatabase(dataDir) {
   if (!bankColumns.some((column) => column.name === 'expires_at')) {
     db.exec('ALTER TABLE question_banks ADD COLUMN expires_at INTEGER');
   }
+  db.exec('CREATE INDEX IF NOT EXISTS idx_banks_expiry ON question_banks(expires_at)');
   db.exec("UPDATE question_banks SET retention='PERMANENT', expires_at=NULL WHERE is_sample=1");
   // Temporary created packs live for 30 days; never pull a pack from an active game.
   db.prepare(`DELETE FROM question_banks WHERE is_sample=0 AND retention='TEMPORARY' AND expires_at IS NOT NULL AND expires_at<=?
