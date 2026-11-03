@@ -4,6 +4,12 @@
 
 ▶ **Play it live: [zerosum.website](https://zerosum.website)** — no downloads, works on phones.
 
+## Watch the 60-second intro
+
+[![ZeroSum Arena - 60-second hype intro](docs/hype-poster.jpg)](docs/zerosum-hype-60s.mp4)
+
+**[Watch the 60-second intro](docs/zerosum-hype-60s.mp4)** - real gameplay from zerosum.website: a full 50-player hosted tournament, Solo Arcade streak battles, live challengers, and the AI Pack Forge with ZeroSum Sensei (Meta Muse Spark), including its classroom guardrails.
+
 A host picks a challenge pack, players join with a six-letter code (no student accounts), and everyone battles with three HP until one champion remains. Practicing alone? Solo Arcade pits you against bot rivals in a streak ladder.
 
 
