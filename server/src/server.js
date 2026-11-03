@@ -46,14 +46,12 @@ const browserAccount = (account, authenticated = false) => {
   return publicBetaMode && safe && !authenticated ? { ...safe, email: 'beta@zerosum.local', displayName: 'Beta Host' } : safe;
 };
 const awsSampleBank = JSON.parse(fs.readFileSync(awsSampleBankPath, 'utf8'));
-const extraSamplePaths = ['math-foundations-bank.json','english-grammar-bank.json','science-explorers-bank.json','philippine-history-bank.json','money-smart-bank.json','job-ready-bank.json'].map((f) => path.join(projectRoot, 'data', f)).filter((f) => fs.existsSync(f));
+// Pack library is intentionally lean: only these three included packs are seeded.
+// The other sample JSON files stay in /data so packs can be restored later.
 ensureSampleBanks(db, [
-  JSON.parse(fs.readFileSync(starterBankPath, 'utf8')),
   JSON.parse(fs.readFileSync(rpsSampleBankPath, 'utf8')),
-  JSON.parse(fs.readFileSync(informationSecuritySampleBankPath, 'utf8')),
   JSON.parse(fs.readFileSync(securityAwarenessSampleBankPath, 'utf8')),
   { ...awsSampleBank, name: 'AWS Cloud Practitioner Practice' },
-  ...extraSamplePaths.map((f) => JSON.parse(fs.readFileSync(f, 'utf8'))),
 ]);
 const game = new ZerosumGame(db, {
   hideHostQuestions: publicBetaMode,
