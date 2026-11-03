@@ -544,6 +544,8 @@ export class ZerosumGame {
     if (!/^[a-f0-9-]{20,50}$/i.test(playerId)) throw new Error('Your player session is invalid. Reload and try again.');
     const name = this.cleanName(message.name);
     const avatar = this.cleanAvatar(message.avatar);
+    const activeRun = this.db.prepare("SELECT code FROM tournaments WHERE mode='SOLO' AND solo_player_id=? AND phase NOT IN ('COMPLETE','CANCELLED')").get(playerId);
+    if (activeRun) throw new Error(`You already have an active Solo Arcade run (#${activeRun.code}). Finish or forfeit that run before starting another.`);
     const bank = this.db.prepare('SELECT * FROM question_banks WHERE id=? AND (is_sample=1 OR owner_id=?) AND (expires_at IS NULL OR expires_at>?)').get(String(message.bankId ?? ''), ws.account?.id ?? '', Date.now());
     if (!bank) throw new Error('Select one of the available challenge packs.');
     if (ws.restrictToSampleBanks && !bank.is_sample) throw new Error('Sign in to play with custom packs. Included packs are open to everyone.');

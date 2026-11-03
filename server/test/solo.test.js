@@ -140,3 +140,18 @@ test('forfeiting a solo run ends it, frees the player, and stays off the leaderb
     assert.equal(snap.tournament.phase, 'COMPLETE');
   } finally { cleanup(ctx); }
 });
+
+test('a player cannot stack a second active solo run', () => {
+  const ctx = setup();
+  try {
+    const socket = new FakeSocket();
+    ctx.game.createSoloRun(socket, { playerId: HUMAN, name: 'Ace', avatar: 'arena-02', bankId: 'bank-test', ladderLength: 5 });
+    const created = socket.messages.find((message) => message.type === 'soloCreated');
+    assert.throws(
+      () => ctx.game.createSoloRun(new FakeSocket(), { playerId: HUMAN, name: 'Ace', avatar: 'arena-02', bankId: 'bank-test', ladderLength: 5 }),
+      /already have an active Solo Arcade run/,
+    );
+    ctx.game.forfeitSoloRun(socket, { code: created.code, playerId: HUMAN });
+    assert.doesNotThrow(() => ctx.game.createSoloRun(new FakeSocket(), { playerId: HUMAN, name: 'Ace', avatar: 'arena-02', bankId: 'bank-test', ladderLength: 5 }));
+  } finally { cleanup(ctx); }
+});
