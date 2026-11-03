@@ -990,7 +990,10 @@ export function App() {
   const [connected, setConnected] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot>();
   useEffect(() => { if (!snapshot || snapshot.tournament.phase === 'COMPLETE' || snapshot.tournament.phase === 'CANCELLED') stopChargeSfx(); }, [snapshot?.tournament.phase, Boolean(snapshot)]);
-  const [error, setError] = useState('');
+  const [error, setErrorState] = useState('');
+  const errorSetAt = useRef(0);
+  const setError = useCallback((message: string) => { errorSetAt.current = message ? Date.now() : 0; setErrorState(message); }, []);
+  useEffect(() => { if (!error) return; const timer = window.setTimeout(() => setError(''), 12000); return () => window.clearTimeout(timer); }, [error, setError]);
   const [name, setName] = useState(localStorage.getItem('zerosum-name') ?? '');
   const [avatar, setAvatar] = useState(() => {
     const saved = localStorage.getItem('zerosum-avatar');
@@ -1201,7 +1204,7 @@ export function App() {
           if (!health.ok) throw new Error('Game server is unavailable.');
         }
         setConnected(true);
-        if (ok) setError('');
+        if (ok && Date.now() - errorSetAt.current > 8000) setError('');
       } catch {
         setConnected(false);
         setError('The game connection was interrupted. Retrying…');
@@ -1220,7 +1223,7 @@ export function App() {
     if (transport.current === 'http') {
       void httpRequest('/api/action', { action, ...payload }).then((ok) => {
         setConnected(true);
-        if (ok) setError('');
+        if (ok && Date.now() - errorSetAt.current > 8000) setError('');
       }).catch(() => {
         setConnected(false);
         setError('The game connection was interrupted. Retrying…');
@@ -1802,12 +1805,12 @@ export function App() {
           <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={savingBank}>{savingBank ? 'Checking…' : 'Check and import'}</button></div>
         </form>}
       </section>}
-      {error && <div className="toast error">{error}</div>}
+      {error && <div className="toast error" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss message" onClick={() => setError('')}>×</button></div>}
       <footer><span className={connected ? 'online' : 'offline'}>●</span> {connected ? 'Battle network online' : 'Connecting…'}</footer>
     </main>);
   }
 
-  if (isHost && !snapshot) return withMusic(<main className="shell centered"><div className="spinner"/><div className="eyebrow">RESTORING HOST SESSION</div><h1>Reconnecting to your arena…</h1><p className="muted">If this tournament has already ended or the session expired, return to the main menu.</p><button type="button" className="secondary-action replay-action" onClick={returnHome}>Return home</button>{error && <div className="toast error">{error}</div>}</main>);
+  if (isHost && !snapshot) return withMusic(<main className="shell centered"><div className="spinner"/><div className="eyebrow">RESTORING HOST SESSION</div><h1>Reconnecting to your arena…</h1><p className="muted">If this tournament has already ended or the session expired, return to the main menu.</p><button type="button" className="secondary-action replay-action" onClick={returnHome}>Return home</button>{error && <div className="toast error" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss message" onClick={() => setError('')}>×</button></div>}</main>);
 
   if (isHost && !snapshot?.me) {
     const tournament = snapshot?.tournament;
@@ -1836,11 +1839,11 @@ export function App() {
       </section>
       {progressionOpen && <div className="dashboard-modal" role="dialog" aria-modal="true" aria-label="Tournament progression" onClick={() => setProgressionOpen(false)}><section className="dashboard-modal-panel" onClick={(event) => event.stopPropagation()}><button className="modal-close" aria-label="Close tournament progression" onClick={() => setProgressionOpen(false)}>×</button><TournamentProgression matches={snapshot?.matchHistory ?? []} players={snapshot?.players ?? []} championId={tournament?.championId} /></section></div>}
       {reviewOpen && <div className="dashboard-modal" role="dialog" aria-modal="true" aria-label="Challenges used in this tournament" onClick={() => setReviewOpen(false)}><section className="dashboard-modal-panel review-panel" onClick={(event) => event.stopPropagation()}><button className="modal-close" aria-label="Close challenge review" onClick={() => setReviewOpen(false)}>×</button><div className="modal-heading"><div className="eyebrow">CLASS REVIEW</div><h2>{tournament?.gameMode === 'RPS' ? 'Move rounds used in this tournament' : 'Questions used in this tournament'}</h2><p>{tournament?.gameMode === 'RPS' ? 'Player choices and results are recorded in the event log.' : 'Correct answers and explanations are shown for instructor-led discussion.'}</p></div><QuestionReview questions={snapshot?.reviewQuestions ?? []} matches={snapshot?.matchHistory ?? []} gameMode={tournament?.gameMode} /></section></div>}
-      {error && <div className="toast error">{error}</div>}
+      {error && <div className="toast error" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss message" onClick={() => setError('')}>×</button></div>}
     </main>);
   }
 
-  if (!snapshot) return withMusic(<main className="shell centered"><div className="spinner"/><p>Entering the arena…</p>{error && <div className="toast error">{error}</div>}</main>);
+  if (!snapshot) return withMusic(<main className="shell centered"><div className="spinner"/><p>Entering the arena…</p>{error && <div className="toast error" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss message" onClick={() => setError('')}>×</button></div>}</main>);
 
   if (snapshot.tournament.phase === 'CANCELLED') return withMusic(<main className="shell centered"><div className="trophy dim">⌛</div><div className="eyebrow">LOBBY CLOSED</div><h1>Tournament cancelled</h1><p>This tournament was ended by the instructor or expired after 20 minutes.</p><button className="action replay-action" onClick={returnHome}>Return home</button></main>);
 
