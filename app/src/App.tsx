@@ -1052,7 +1052,7 @@ export function App() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [aiFile, setAiFile] = useState<{ name: string; contentBase64: string }>();
+  const [aiFile, setAiFile] = useState<{ name: string; contentBase64: string; size: number }>();
   const [aiDocNote, setAiDocNote] = useState('');
   const [aiModel, setAiModel] = useState('muse-spark-1.3');
   const [copyStatus, setCopyStatus] = useState('Copy link');
@@ -1740,11 +1740,16 @@ export function App() {
         {bankManagerView === 'ai' && isAdmin && authenticated && <form className="pack-import ai-forge" onSubmit={generateAiPack}>
           <div className="manager-heading"><div><div className="eyebrow">AI PACK FORGE · POWERED BY META MUSE SPARK</div><h2>Turn a lesson into a battle</h2><p>Teachers: type a topic or paste lesson notes. Meta AI writes curriculum-friendly questions with teaching explanations, checked by Zerosum before they can be played.</p></div><span>{aiEnabled ? 'AI online' : 'AI key needed'}</span></div>
           {!aiEnabled && <p className="limit-note">The forge is built and ready - it activates the moment a Meta Model API key (MODEL_API_KEY from dev.meta.ai) is added on the server. Ready-made packs below still work right now.</p>}
+          <div className="ai-identity"><span className="ai-identity-mark">✦</span><div><b>ZeroSum Sensei</b><small>Quiz &amp; learning specialist · powered by Meta Muse Spark. I only build educational quizzes - give me a topic, your notes, or a lesson PDF.</small></div><em>Scope locked</em></div>
           <label>Topic <small>Optional if you upload a document</small><input autoFocus maxLength={120} value={aiTopic} onChange={(event) => setAiTopic(event.target.value)} placeholder="Example: Photosynthesis for Grade 6" /></label>
           <label>Who is this for?<select value={aiAudience} onChange={(event) => setAiAudience(event.target.value)}><option>Classroom learners</option><option>Exam reviewers</option><option>Self-study learners</option><option>Everyone / trivia night</option><option>Workplace training</option></select></label>
           <label>Questions<select value={aiCount} onChange={(event) => setAiCount(Number(event.target.value))}><option value={8}>8 questions</option><option value={12}>12 questions</option><option value={16}>16 questions</option><option value={20}>20 questions</option></select></label>
           <label>Lesson notes <small>Optional - paste your own material and questions will be based only on it</small><textarea maxLength={8000} rows={6} value={aiSource} onChange={(event) => setAiSource(event.target.value)} placeholder="Paste lesson notes, a reviewer, or a chapter summary..." /></label>
-          <label className="file-drop"><span>Upload lesson document (PDF, TXT, MD, CSV, JSON · up to 4 MB)</span><small>{aiFile ? aiFile.name : 'Text is extracted on the server for free; only a short excerpt is sent to Meta AI to save tokens'}</small><input type="file" accept=".pdf,.txt,.md,.markdown,.csv,.json" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return setAiFile(undefined); if (file.size > 4 * 1024 * 1024) return setError('Upload a document up to 4 MB.'); const reader = new FileReader(); reader.onload = () => setAiFile({ name: file.name, contentBase64: String(reader.result).split(',')[1] ?? '' }); reader.readAsDataURL(file); }} /></label>
+          <div className={aiFile ? 'ai-upload has-file' : 'ai-upload'}>
+            <span className="ai-upload-icon">PDF</span>
+            <div className="ai-upload-copy"><b>{aiFile ? aiFile.name : 'Upload a lesson PDF'}</b><small>{aiFile ? (aiFile.size / 1024).toFixed(0) + ' KB · text is extracted on the server for free; only a short excerpt reaches Meta AI' : 'PDF only · up to 4 MB · handouts, reviewers, slides exported as PDF'}</small></div>
+            {aiFile ? <button type="button" className="ai-upload-remove" aria-label="Remove PDF" onClick={() => setAiFile(undefined)}>×</button> : <label className="ai-upload-browse">Browse<input type="file" accept=".pdf,application/pdf" hidden onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') return setError('AI Pack Forge accepts PDF lessons only.'); if (file.size > 4 * 1024 * 1024) return setError('Upload a PDF up to 4 MB.'); const reader = new FileReader(); reader.onload = () => { setAiFile({ name: file.name, size: file.size, contentBase64: String(reader.result).split(',')[1] ?? '' }); playSfx('click'); }; reader.readAsDataURL(file); }} /></label>}
+          </div>
           {aiDocNote && <p className="limit-note">{aiDocNote}</p>}
           <div className="builder-actions"><button type="button" className="secondary-action" onClick={() => setBankManagerView('library')}>Cancel</button><button className="action" disabled={aiBusy || !aiEnabled}>{aiBusy ? 'Forging with Meta AI...' : 'Forge my pack ✦'}</button></div>
         </form>}

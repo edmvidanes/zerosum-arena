@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseAiPack } from '../src/ai.js';
+import { AI_IDENTITY, parseAiPack } from '../src/ai.js';
 import { normalizeQuestions } from '../src/banks.js';
 
 test('parseAiPack extracts JSON from model text', () => {
@@ -13,6 +13,10 @@ test('parseAiPack extracts JSON from model text', () => {
   assert.equal(pack.questions.length, 1);
 });
 test('parseAiPack rejects non-JSON', () => { assert.throws(() => parseAiPack('no json here')); });
+test('ZeroSum Sensei identity is quiz-and-learning only', () => { assert.match(AI_IDENTITY, /quiz and learning specialist/); });
+test('out-of-scope topics are refused by the model contract', () => {
+  assert.throws(() => parseAiPack('{"error":"ZeroSum Sensei only builds quizzes for learning topics."}'), (err) => err.code === 'AI_OUT_OF_SCOPE');
+});
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(here, '../../data');

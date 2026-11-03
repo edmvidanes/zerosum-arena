@@ -14,10 +14,9 @@ test('excerpt samples start middle and end for token efficiency', () => {
   const out = excerptForModel(text, 900);
   assert.ok(out.length <= 920); assert.match(out, /A/); assert.match(out, /B/); assert.match(out, /C/);
 });
-test('extracts text documents and rejects tiny files', async () => {
+test('uploads are PDF-only', async () => {
   const contentBase64 = Buffer.from('Photosynthesis is how plants convert sunlight water and carbon dioxide into food and oxygen for growth.').toString('base64');
-  const result = await extractDocumentText({ name: 'lesson.txt', contentBase64 });
-  assert.match(result.text, /Photosynthesis/);
-  await assert.rejects(() => extractDocumentText({ name: 'x.txt', contentBase64: Buffer.from('tiny').toString('base64') }));
-  await assert.rejects(() => extractDocumentText({ name: 'x.exe', contentBase64 }));
+  await assert.rejects(() => extractDocumentText({ name: 'lesson.txt', contentBase64 }), /Only PDF/);
+  await assert.rejects(() => extractDocumentText({ name: 'lesson.md', contentBase64 }), /Only PDF/);
+  await assert.rejects(() => extractDocumentText({ name: 'x.exe', contentBase64 }), /Only PDF/);
 });

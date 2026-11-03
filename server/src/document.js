@@ -1,7 +1,6 @@
-// Extracts plain text from teacher uploads for AI Pack Forge.
+// Extracts plain text from teacher PDF uploads for AI Pack Forge (PDF only by design).
 // Cost strategy: extraction is local/free; only a capped, evenly-sampled excerpt is sent to the model.
 const MAX_BYTES = 4 * 1024 * 1024;
-const TEXT_EXTS = ['.txt', '.md', '.markdown', '.csv', '.json', '.text'];
 
 export function excerptForModel(text, limit = 8000) {
   const clean = String(text ?? '').replace(/\s+\n/g, '\n').trim();
@@ -33,10 +32,5 @@ export async function extractDocumentText(input) {
     if (text.length < 80) throw new Error('That PDF looks scanned/image-only. Paste the text instead so the AI can read it.');
     return { text, pages: pdf.numPages, characters: text.length };
   }
-  if (TEXT_EXTS.some((ext) => name.endsWith(ext))) {
-    const text = buffer.toString('utf8').trim();
-    if (text.length < 40) throw new Error('That file has too little readable text.');
-    return { text, pages: 1, characters: text.length };
-  }
-  throw new Error('Upload a PDF, TXT, MD, CSV, or JSON document.');
+  throw new Error('Only PDF lessons are accepted. Convert the file to PDF and try again.');
 }
