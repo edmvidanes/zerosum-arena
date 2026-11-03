@@ -204,6 +204,16 @@ input:focus, select:focus, textarea:focus { border-color: #5adbef; box-shadow: 0
 .bank-summary.friendly .pack-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: #123443; color: #6edcec; font-size: 20px; }
 .bank-summary.friendly button.selected .pack-icon { background: #533417; color: #ffb25a; }
 .bank-summary.friendly button > span:nth-child(2) { display: grid; gap: 5px; }
+.admin-packs { margin-bottom: 6px; }
+.admin-pack-card { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 12px; min-height: 82px; padding: 15px; border: 1px solid #476a78; border-radius: 11px; background: #06151f; color: #d9ebef; }
+.admin-pack-card > span:nth-child(2) { display: grid; gap: 5px; min-width: 0; }
+.admin-pack-card b { overflow-wrap: anywhere; }
+.admin-pack-card small { color: #7894a1; }
+.admin-pack-card.is-hidden { border-style: dashed; opacity: .72; background: #0a141c; }
+.admin-pack-card .pack-toggle { min-height: 38px; padding: 8px 13px; border: 1px solid #557b8a; border-radius: 999px; background: #0d2a38; color: #8fe3f2; font: 700 11px Chakra Petch, sans-serif; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; transition: .15s; white-space: nowrap; }
+.admin-pack-card .pack-toggle:hover { border-color: #65d9eb; transform: translateY(-1px); }
+.admin-pack-card .pack-toggle.show { background: #3a2a12; border-color: #a8762f; color: #ffc06e; }
+@media (max-width: 700px) { .admin-pack-card { grid-template-columns: 42px 1fr; } .admin-pack-card .pack-toggle { grid-column: 2; justify-self: start; } }
 .bank-summary.friendly em { color: #6ed8e9; font: normal 700 10px Chakra Petch, sans-serif; text-transform: uppercase; }
 .pack-builder, .pack-import { display: grid; gap: 23px; }
 .pack-details, .question-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
