@@ -3,7 +3,7 @@ import { excerptForModel } from './document.js';
 const API_URL = process.env.META_MODEL_API_URL || 'https://api.meta.ai/v1/chat/completions';
 export const AI_MODEL = process.env.META_MODEL || 'muse-spark-1.3';
 export function aiEnabled() { return Boolean(process.env.MODEL_API_KEY || process.env.META_MODEL_API_KEY); }
-function apiKey() { return process.env.MODEL_API_KEY || process.env.META_MODEL_API_KEY || ''; }
+function apiKey() { return String(process.env.MODEL_API_KEY || process.env.META_MODEL_API_KEY || '').trim(); }
 export const AI_IDENTITY = 'ZeroSum Sensei - the quiz and learning specialist inside ZeroSum Arena, powered by Meta Muse Spark. It only creates educational quizzes that help people learn; it refuses anything outside quizzes and learning.';
 export function parseAiPack(text) {
   const raw = String(text ?? '');
